@@ -1,0 +1,2814 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visor 3D Interactivo - Armadura Metálica Grupo 2 | UTEC</title>
+  <style>
+    :root {
+      --bg-dark: #ffffff;
+      --card-bg: rgba(255, 255, 255, 0.94);
+      --card-border: rgba(148, 163, 184, 0.28);
+      --accent-blue: #0284c7;
+      --accent-indigo: #4f46e5;
+      --tension-color: #0284c7;
+      --compression-color: #dc2626;
+      --neutral-color: #64748b;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --sub-bg: rgba(241, 245, 249, 0.92);
+      --shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+    }
+
+    body.dark-theme {
+      --bg-dark: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.88);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --accent-blue: #38bdf8;
+      --accent-indigo: #6366f1;
+      --tension-color: #38bdf8;
+      --compression-color: #ef4444;
+      --neutral-color: #94a3b8;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --sub-bg: rgba(15, 23, 42, 0.6);
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Top Navigation Header */
+    header {
+      position: absolute;
+      top: 16px;
+      left: 20px;
+      right: 20px;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .header-title-box {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      padding: 12px 20px;
+      border-radius: 12px;
+      pointer-events: auto;
+      box-shadow: var(--shadow);
+    }
+
+    .header-title-box h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #0284c7, #4f46e5);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-title-box p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      pointer-events: auto;
+    }
+
+    .btn {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .btn:hover {
+      background: var(--sub-bg);
+      border-color: var(--accent-blue);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #ffffff;
+      border-color: transparent;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #0369a1, #1d4ed8);
+    }
+
+    /* Left Control Sidebar */
+    .sidebar {
+      position: absolute;
+      top: 90px;
+      left: 20px;
+      bottom: 24px;
+      width: 360px;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .tabs-header {
+      display: flex;
+      border-bottom: 1px solid var(--card-border);
+      background: var(--sub-bg);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 11px 4px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+      text-align: center;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .tab-btn.active {
+      color: var(--accent-blue);
+      border-bottom-color: var(--accent-blue);
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    .sidebar-content {
+      padding: 16px 18px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Control Sections */
+    .section-title {
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent-blue);
+      margin-bottom: 8px;
+    }
+
+    .control-group {
+      background: var(--sub-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+
+    /* Modern Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #94a3b8;
+      transition: .3s;
+      border-radius: 20px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    input:checked + .slider { background-color: var(--accent-blue); }
+    input:checked + .slider:before { transform: translateX(16px); }
+
+    /* Wind Simulator Controls & Badges */
+    .wind-speed-btn {
+      flex: 1;
+      padding: 6px 3px;
+      font-size: 0.69rem;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid var(--card-border);
+      background: var(--sub-bg);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      text-align: center;
+    }
+    .wind-speed-btn:hover {
+      border-color: #38bdf8;
+      color: var(--text-main);
+    }
+    .wind-speed-btn.active {
+      background: rgba(2, 132, 199, 0.16);
+      border-color: #0284c7;
+      color: #0284c7;
+      font-weight: 700;
+      box-shadow: 0 0 8px rgba(2, 132, 199, 0.25);
+    }
+    @keyframes windGlow {
+      0%, 100% { box-shadow: 0 0 6px rgba(2, 132, 199, 0.3); }
+      50% { box-shadow: 0 0 16px rgba(56, 189, 248, 0.7); }
+    }
+    .wind-active-badge {
+      animation: windGlow 2s infinite ease-in-out;
+    }
+    @keyframes gustPulseAnim {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    .gust-pulsing {
+      animation: gustPulseAnim 0.6s ease-in-out 3;
+    }
+
+    /* Radio Pills */
+    .radio-pill-group {
+      display: flex;
+      background: var(--sub-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 4px;
+    }
+
+    .radio-pill {
+      flex: 1;
+      text-align: center;
+      padding: 7px 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+
+    .radio-pill.active {
+      background: var(--accent-indigo);
+      color: white;
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+    }
+
+    /* Cards */
+    .info-card {
+      background: var(--sub-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .info-card h4 {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .badge {
+      font-size: 0.68rem;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-tension {
+      background: rgba(2, 132, 199, 0.12);
+      color: var(--tension-color);
+      border: 1px solid rgba(2, 132, 199, 0.3);
+    }
+    .badge-compression {
+      background: rgba(220, 38, 38, 0.12);
+      color: var(--compression-color);
+      border: 1px solid rgba(220, 38, 38, 0.3);
+    }
+    .badge-neutral {
+      background: rgba(100, 116, 139, 0.12);
+      color: var(--neutral-color);
+      border: 1px solid rgba(100, 116, 139, 0.3);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.76rem;
+    }
+    .data-table td {
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+      color: var(--text-muted);
+    }
+    .data-table td:last-child {
+      text-align: right;
+      font-family: monospace;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* Bottom Legend and camera views */
+    .bottom-bar {
+      position: absolute;
+      bottom: 24px;
+      right: 20px;
+      z-index: 10;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .legend-box {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 10px 16px;
+      display: flex;
+      gap: 16px;
+      font-size: 0.76rem;
+      color: var(--text-main);
+      pointer-events: auto;
+      box-shadow: var(--shadow);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    .camera-presets {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 6px;
+      display: flex;
+      gap: 4px;
+      pointer-events: auto;
+      box-shadow: var(--shadow);
+    }
+
+    .cam-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .cam-btn:hover {
+      background: var(--sub-bg);
+      color: var(--text-main);
+    }
+
+    /* Member Tooltip floating */
+    #tooltip {
+      position: absolute;
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--accent-blue);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      color: var(--text-main);
+      pointer-events: none;
+      z-index: 100;
+      box-shadow: var(--shadow);
+      transform: translate(-50%, -120%);
+    }
+
+    .tooltip-title {
+      font-weight: 700;
+      color: var(--accent-blue);
+      margin-bottom: 2px;
+    }
+  </style>
+  <!-- Three.js & OrbitControls from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+  <!-- 3D Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- Top Header -->
+  <header>
+    <div class="header-title-box">
+      <h1>ANÁLISIS MATRICIAL | VISOR 3D INTERACTIVO</h1>
+      <p>Techo para Taller Industrial - Nave con 4 Armaduras (UTEC CI5314) | Norma E.090 LRFD</p>
+    </div>
+    <div class="top-actions">
+      <div class="btn" style="cursor: default; background: var(--card-bg); border-color: var(--card-border);">
+        <span style="color: var(--accent-blue); font-size: 0.76rem;">🖱️ Rotar (Click Izq) | Desplazar (Click Der) | Zoom (Rueda)</span>
+      </div>
+      <button class="btn" id="btn-theme-toggle" title="Alternar entre Fondo Blanco Estudio y Modo Oscuro" onclick="toggleTheme()">
+        <span id="txt-theme">🌙 Modo Oscuro</span>
+      </button>
+      <button class="btn" id="btn-autorotate" title="Activar/Pausar rotación automática">
+        <span id="txt-autorotate">▶ Auto-Giro</span>
+      </button>
+      <button class="btn btn-primary" id="btn-screenshot" title="Descargar render en alta resolución">
+        <span>📷 Capturar HD (PNG)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Left Sidebar Controls -->
+  <aside class="sidebar">
+    <div class="tabs-header">
+      <button class="tab-btn active" data-tab="truss">Nave 3D</button>
+      <button class="tab-btn" data-tab="joint">Unión de Nudo</button>
+      <button class="tab-btn" data-tab="sec-tension">Secc. Tracción</button>
+      <button class="tab-btn" data-tab="sec-comp">Secc. Compresión</button>
+    </div>
+
+    <!-- TAB 1: TRUSS 3D -->
+    <div class="sidebar-content" id="panel-truss">
+      <div>
+        <div class="section-title">Modo de Visualización</div>
+        <div class="radio-pill-group" id="color-mode-group">
+          <div class="radio-pill active" data-mode="forces">Esfuerzos Axiales</div>
+          <div class="radio-pill" data-mode="realistic">Acero Realista</div>
+          <div class="radio-pill" data-mode="sections">Por Sección</div>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="section-title">Componentes Estructurales</div>
+        <div class="toggle-row">
+          <span>Nave Completa (4 Armaduras)</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-building" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <span>Correas de Techo (4 Correas en Nudos)</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-purlins" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <span>Apoyos Estructurales (N1 y N7)</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-supports" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <span>Cartelas de Nudo (Gusset Plates)</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-nodes" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- PANEL DE CARGAS ACTUANTES ORIGINALES (kg/m²) -->
+      <div class="control-group" style="border-left: 3px solid #f59e0b; background: rgba(245, 158, 11, 0.04);">
+        <div class="section-title" style="color: #f59e0b; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span>Cargas Actuantes (kg/m²)</span>
+          <span style="font-size: 0.65rem; background: rgba(245, 158, 11, 0.16); color: #f59e0b; padding: 2px 7px; border-radius: 4px; font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.3);">DISTRIBUIDAS</span>
+        </div>
+        
+        <!-- Carga Muerta -->
+        <div class="toggle-row">
+          <span style="display: flex; align-items: center; gap: 7px;">
+            <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #ea580c; box-shadow: 0 0 6px rgba(234, 88, 12, 0.6);"></span>
+            <span><strong>Carga Muerta (D)</strong> <small style="color: var(--text-muted); font-size: 0.72rem;">— 18 kg/m²</small></span>
+          </span>
+          <label class="switch">
+            <input type="checkbox" id="chk-load-dead" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div style="font-size: 0.69rem; color: var(--text-muted); margin-top: -4px; margin-bottom: 6px; padding-left: 17px;">
+          Gravitacional vertical (↓) en toda la cubierta y armaduras
+        </div>
+
+        <!-- Carga Viva -->
+        <div class="toggle-row">
+          <span style="display: flex; align-items: center; gap: 7px;">
+            <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);"></span>
+            <span><strong>Carga Viva (L)</strong> <small style="color: var(--text-muted); font-size: 0.72rem;">— 30 kg/m²</small></span>
+          </span>
+          <label class="switch">
+            <input type="checkbox" id="chk-load-live">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div style="font-size: 0.69rem; color: var(--text-muted); margin-top: -4px; margin-bottom: 6px; padding-left: 17px;">
+          Sobrecarga de uso vertical (↓) en proyección horizontal (NTP E.020)
+        </div>
+
+        <!-- Carga de Viento -->
+        <div class="toggle-row">
+          <span style="display: flex; align-items: center; gap: 7px;">
+            <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #0284c7; box-shadow: 0 0 6px rgba(2, 132, 199, 0.6);"></span>
+            <span><strong>Viento (W, ⟂)</strong> <small style="color: var(--text-muted); font-size: 0.72rem;">— 20 kg/m²</small></span>
+          </span>
+          <label class="switch">
+            <input type="checkbox" id="chk-load-wind">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div style="font-size: 0.69rem; color: var(--text-muted); margin-top: -4px; margin-bottom: 6px; padding-left: 17px;">
+          Presión eólica <strong>perpendicular (⟂)</strong> a la superficie inclinada (θ = 33.7°)
+        </div>
+
+        <div style="border-top: 1px dashed rgba(148, 163, 184, 0.28); margin-top: 6px; padding-top: 6px;">
+          <div class="toggle-row">
+            <span style="font-size: 0.74rem;">Plano Superficial de Cobertura</span>
+            <label class="switch">
+              <input type="checkbox" id="chk-roof-plane" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row" style="margin-top: 4px;">
+            <span style="font-size: 0.74rem;">Cargas Nodales Resultantes (kN)</span>
+            <label class="switch">
+              <input type="checkbox" id="chk-nodal-loads">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL DE SIMULACIÓN AERODINÁMICA Y EFECTO DE VIENTO (NTP E.020) -->
+      <div class="control-group" id="wind-sim-card" style="border-left: 3px solid #0284c7; background: rgba(2, 132, 199, 0.04);">
+        <div class="section-title" style="color: #0284c7; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 1.05rem;">🌬️</span>
+            <span>Simulador de Viento 3D</span>
+          </span>
+          <span id="wind-badge" style="font-size: 0.65rem; background: rgba(100, 116, 139, 0.15); color: var(--text-muted); padding: 2px 7px; border-radius: 4px; font-weight: 700; border: 1px solid rgba(100, 116, 139, 0.3);">INACTIVO</span>
+        </div>
+
+        <!-- Flujo Aerodinámico de Partículas -->
+        <div class="toggle-row">
+          <span style="font-size: 0.77rem; font-weight: 600;">Corrientes Aerodinámicas 3D</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-wind-flow" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: -4px; margin-bottom: 6px;">
+          Líneas de corriente eólicas y partículas desde barlovento (-X) hacia cumbrera
+        </div>
+
+        <!-- Ráfagas / Pulsación Dinámica -->
+        <div class="toggle-row">
+          <span style="font-size: 0.77rem;">Pulsación de Carga (Ráfagas)</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-wind-pulse" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: -4px; margin-bottom: 6px;">
+          Variación dinámica armónica de presión y longitud de vectores eólicos
+        </div>
+
+        <!-- Descomposición Vectorial en Nudos -->
+        <div class="toggle-row">
+          <span style="font-size: 0.77rem;">Descomposición Vectorial (Wx, Wy)</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-wind-decomp">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: -4px; margin-bottom: 6px;">
+          Muestra W⟂, Wx (+2.55 kN empuje) y Wy (-3.83 kN presión) en nudos
+        </div>
+
+        <!-- Selector de Velocidad del Viento -->
+        <div style="margin-top: 4px;">
+          <label style="font-size: 0.70rem; color: var(--text-muted); display: block; margin-bottom: 4px; font-weight: 600;">Velocidad del Viento (NTP E.020):</label>
+          <div style="display: flex; gap: 4px;">
+            <button class="wind-speed-btn" data-speed="breeze" id="btn-wind-breeze">Brisa (40 km/h)</button>
+            <button class="wind-speed-btn active" data-speed="normal" id="btn-wind-normal">Diseño (75 km/h)</button>
+            <button class="wind-speed-btn" data-speed="gust" id="btn-wind-gust">Temporal (105 km/h)</button>
+          </div>
+        </div>
+
+        <!-- Disparar Ráfaga Pico -->
+        <button class="btn" id="btn-trigger-gust" style="width: 100%; justify-content: center; margin-top: 6px; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.5); color: #0284c7; font-size: 0.75rem; padding: 7px 10px;">
+          🌪️ Disparar Ráfaga de Viento Máxima
+        </button>
+
+        <!-- Animación de Cargas Gravitacionales -->
+        <div style="border-top: 1px dashed rgba(148, 163, 184, 0.28); margin-top: 8px; padding-top: 8px;">
+          <div class="toggle-row">
+            <span style="font-size: 0.77rem;">Animación Cargas Gravitacionales (D y L)</span>
+            <label class="switch">
+              <input type="checkbox" id="chk-gravity-anim" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: -4px;">
+            Oscilación dinámica de descenso en las flechas de carga muerta y viva
+          </div>
+        </div>
+      </div>
+
+      <!-- Action: Quick Zoom to Joint -->
+      <button class="btn" id="btn-focus-joint" style="width: 100%; justify-content: center; background: rgba(56,189,248,0.12); border-color: rgba(56,189,248,0.4); color: #38bdf8;">
+        🔍 Enfocar Detalle de Unión (Nodo 2)
+      </button>
+
+      <!-- Info Note on Purlins / Correas -->
+      <div class="control-group" style="background: rgba(15, 23, 42, 0.6); border-left: 3px solid #38bdf8;">
+        <div class="section-title" style="color: #38bdf8; margin-bottom: 4px;">Ubicación Exacta de Correas (4 Nudos)</div>
+        <p style="font-size: 0.73rem; color: #cbd5e1; line-height: 1.35;">
+          Las <strong>4 correas longitudinales</strong> van <em>estrictamente en los nudos del cordón superior</em>: <strong>Nodo 1 (Alero), Nodo 2, Nodo 3 y Nodo 4 (Cumbrera)</strong>. De este modo, transfieren las cargas tributarias como <strong>cargas puntuales axiales puras</strong> sin inducir flexión en las barras.
+        </p>
+      </div>
+
+      <!-- Info Card for Selected Member -->
+      <div class="info-card" id="member-info-card">
+        <h4 id="card-elem-title">
+          <span>Barra Seleccionada</span>
+          <span class="badge badge-compression" id="card-badge">COMPRESIÓN</span>
+        </h4>
+        <table class="data-table">
+          <tr>
+            <td>Elemento ID:</td>
+            <td id="card-elem-id">Barra 1</td>
+          </tr>
+          <tr>
+            <td>Ubicación:</td>
+            <td id="card-elem-loc">Cordón Superior</td>
+          </tr>
+          <tr>
+            <td>Nodos:</td>
+            <td id="card-elem-nodes">Nodo 1 → Nodo 2</td>
+          </tr>
+          <tr>
+            <td>Longitud real L:</td>
+            <td id="card-elem-len">3.61 m</td>
+          </tr>
+          <tr>
+            <td>Fuerza Axial Pu:</td>
+            <td id="card-elem-pu" style="color: #ef4444;">-27.35 kN</td>
+          </tr>
+          <tr>
+            <td>Perfil Asignado:</td>
+            <td id="card-elem-sec">2L 2-1/2"x2-1/2"x3/16"x3/8"</td>
+          </tr>
+          <tr>
+            <td>Capacidad Diseño ϕPn:</td>
+            <td id="card-elem-cap">50.39 kN</td>
+          </tr>
+          <tr>
+            <td>Ratio Demanda/Capacidad:</td>
+            <td id="card-elem-dc" style="color: #4ade80;">54.3% (CUMPLE LRFD)</td>
+          </tr>
+        </table>
+        <div style="margin-top: 6px; font-size: 0.72rem; color: var(--text-muted); text-align: center;">
+          💡 <em>Haz clic en cualquier barra para seleccionarla e inspeccionarla.</em>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: DETALLE DE UNIÓN DE NUDO (UNIÓN SOLDADA) -->
+    <div class="sidebar-content" id="panel-joint" style="display: none;">
+      <div class="info-card">
+        <h4>
+          <span>Detalle de Unión en Nodo 2</span>
+          <span class="badge" style="background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid #f59e0b;">UNIÓN SOLDADA</span>
+        </h4>
+        <p style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.35; margin-bottom: 6px;">
+          Conexión real de celosía con <strong>plancha cartela central de 3/8" (9.5 mm)</strong> abrazada por los perfiles <strong>2L espalda con espalda</strong> y unida mediante <strong>cordones de soldadura de filete longitudinales y transversales (E70XX / AWS D1.1)</strong>.
+        </p>
+        <table class="data-table">
+          <tr><td>Espesor Cartela (tp):</td><td>9.525 mm (3/8")</td></tr>
+          <tr><td>Material Cartela:</td><td>Acero ASTM A36 / A572 Gr. 50</td></tr>
+          <tr><td>Cordón Superior 1:</td><td>2L 2-1/2"x2-1/2"x3/16"x3/8"</td></tr>
+          <tr><td>Cordón Superior 2:</td><td>2L 2"x2"x1/8"x3/8"</td></tr>
+          <tr><td>Montante 7:</td><td>2L 2"x2"x1/8"x3/8" (Fuerza Nula)</td></tr>
+          <tr><td>Diagonal 10:</td><td>2L 2"x2"x1/8"x3/8" (Compresión)</td></tr>
+          <tr><td>Tipo de Fijación:</td><td>Soldadura de Filete E70XX (SMAW / GMAW)</td></tr>
+          <tr><td>Patrón de Soldadura:</td><td>Filete en "U" (2 Longitudinales + 1 Frontal)</td></tr>
+          <tr><td>Separación entre Ls:</td><td>9.5 mm (Grosor Cartela)</td></tr>
+        </table>
+      </div>
+
+      <div class="control-group">
+        <div class="section-title">Opciones de la Unión</div>
+        <div class="toggle-row">
+          <span>Mostrar Cotas / Medidas 3D</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-joint-dims" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <span>Cordones de Soldadura (E70XX)</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-joint-welds" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <span>Separar Perfiles (Vista Despiezada)</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-joint-explode">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="control-group" style="background: rgba(15, 23, 42, 0.6); border-left: 3px solid #f59e0b;">
+        <div class="section-title" style="color: #fbbf24; margin-bottom: 4px;">¿Por qué 3/8"?</div>
+        <p style="font-size: 0.72rem; color: #cbd5e1; line-height: 1.35;">
+          El <strong>3/8"</strong> en la nomenclatura <em>2L 2x2x1/8x3/8</em> indica el <strong>espesor de la plancha cartela (tp = 3/8" = 9.5 mm)</strong> que va insertada entre las espaldas de los dos ángulos para materializar la conexión.
+        </p>
+      </div>
+    </div>
+
+    <!-- TAB 3: SECCIÓN TRACCIÓN -->
+    <div class="sidebar-content" id="panel-sec-tension" style="display: none;">
+      <div class="info-card">
+        <h4>
+          <span>2L 2" × 2" × 1/8" × 3/8"</span>
+          <span class="badge badge-tension">TRACCIÓN</span>
+        </h4>
+        <p style="font-size: 0.74rem; color: var(--text-muted); margin-bottom: 8px;">
+          Sección armada en doble ángulo para cordón inferior (barras 4, 5), montante 8 y diagonales.
+        </p>
+        <table class="data-table">
+          <tr><td>Área Bruta Total (Ag):</td><td>633.5 mm² (6.34 cm²)</td></tr>
+          <tr><td>Peso Lineal:</td><td>4.91 kg/m</td></tr>
+          <tr><td>Ancho de Ala (b):</td><td>50.8 mm (2")</td></tr>
+          <tr><td>Espesor de Ala (t):</td><td>3.18 mm (1/8")</td></tr>
+          <tr><td>Separación Cartela (s):</td><td>9.53 mm (3/8")</td></tr>
+          <tr><td>Ancho Total (B):</td><td>111.1 mm (4.38")</td></tr>
+          <tr><td>Radio Mínimo rmin:</td><td>15.75 mm (= rx)</td></tr>
+          <tr><td>Esbeltez λ (L=3.0m):</td><td>190.5 ≤ 300 (OK)</td></tr>
+          <tr><td>Capacidad ϕtPn:</td><td>171.1 kN (Rotura An)</td></tr>
+          <tr><td>Demanda Máx Pu:</td><td>11.77 kN</td></tr>
+          <tr><td>Ratio D/C:</td><td style="color: #4ade80;">6.9% (CUMPLE HOLGADO)</td></tr>
+        </table>
+      </div>
+
+      <div class="control-group">
+        <div class="section-title">Opciones 3D de Sección</div>
+        <div class="toggle-row">
+          <span>Mostrar Medidas y Cotas 3D</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-sec-tension-dims" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <span>Plancha Cartela Central (3/8")</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-sec-tension-gusset" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <span>Cordones de Soldadura</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-sec-tension-weld" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: SECCIÓN COMPRESIÓN -->
+    <div class="sidebar-content" id="panel-sec-comp" style="display: none;">
+      <div class="info-card">
+        <h4>
+          <span>2L 2-1/2" × 2-1/2" × 3/16" × 3/8"</span>
+          <span class="badge badge-compression">COMPRESIÓN</span>
+        </h4>
+        <p style="font-size: 0.74rem; color: var(--text-muted); margin-bottom: 8px;">
+          Sección reforzada exclusiva para el <strong>Elemento 1 (Cordón Superior)</strong> para cumplir la esbeltez máxima en compresión (λ ≤ 200).
+        </p>
+        <table class="data-table">
+          <tr><td>Área Bruta Total (Ag):</td><td>1161.3 mm² (11.61 cm²)</td></tr>
+          <tr><td>Peso Lineal:</td><td>9.08 kg/m</td></tr>
+          <tr><td>Ancho de Ala (b):</td><td>63.5 mm (2-1/2")</td></tr>
+          <tr><td>Espesor de Ala (t):</td><td>4.76 mm (3/16")</td></tr>
+          <tr><td>Separación Cartela (s):</td><td>9.53 mm (3/8")</td></tr>
+          <tr><td>Ancho Total (B):</td><td>136.5 mm (5.38")</td></tr>
+          <tr><td>Radio Mínimo rmin:</td><td>19.58 mm (= rx)</td></tr>
+          <tr><td>Longitud Barra 1:</td><td>3605.5 mm</td></tr>
+          <tr><td>Esbeltez λ = KL/r:</td><td style="color: #4ade80;">184.1 ≤ 200 (CUMPLE E.090)</td></tr>
+          <tr><td>Capacidad ϕcPn:</td><td>50.39 kN</td></tr>
+          <tr><td>Demanda Compresión Pu:</td><td>27.35 kN</td></tr>
+          <tr><td>Ratio D/C:</td><td style="color: #4ade80;">54.3% (CUMPLE LRFD)</td></tr>
+        </table>
+      </div>
+
+      <div class="control-group">
+        <div class="section-title">Opciones 3D de Sección</div>
+        <div class="toggle-row">
+          <span>Mostrar Medidas y Cotas 3D</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-sec-comp-dims" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <span>Plancha Cartela Central (3/8")</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-sec-comp-gusset" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <span>Cordones de Soldadura</span>
+          <label class="switch">
+            <input type="checkbox" id="chk-sec-comp-weld" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Bottom Legend and Camera Presets -->
+  <div class="bottom-bar">
+    <div class="legend-box" id="legend-box">
+      <div class="legend-item">
+        <div class="legend-color" style="background: #38bdf8;"></div>
+        <span>Tracción (+)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: #ef4444;"></div>
+        <span>Compresión (-)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: #94a3b8;"></div>
+        <span>Fuerza Cero</span>
+      </div>
+      <div class="legend-item" id="leg-dead" style="display: flex;">
+        <div class="legend-color" style="background: #ea580c; border-radius: 50%;"></div>
+        <span>D: 18 kg/m² ↓</span>
+      </div>
+      <div class="legend-item" id="leg-live" style="display: none;">
+        <div class="legend-color" style="background: #10b981; border-radius: 50%;"></div>
+        <span>L: 30 kg/m² ↓</span>
+      </div>
+      <div class="legend-item" id="leg-wind" style="display: none;">
+        <div class="legend-color" style="background: #0284c7; border-radius: 50%;"></div>
+        <span>W: 20 kg/m² ⟂</span>
+      </div>
+    </div>
+
+    <div class="camera-presets">
+      <button class="cam-btn" onclick="setCameraView('iso')">Isométrica</button>
+      <button class="cam-btn" onclick="setCameraView('front')">Frontal</button>
+      <button class="cam-btn" onclick="setCameraView('top')">Superior</button>
+      <button class="cam-btn" onclick="setCameraView('side')">Lateral</button>
+      <button class="cam-btn" onclick="resetCamera()">Reset</button>
+    </div>
+  </div>
+
+  <!-- Member Tooltip -->
+  <div id="tooltip">
+    <div class="tooltip-title" id="tt-title">Barra 1</div>
+    <div id="tt-detail">Pu = -27.35 kN</div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // DATOS DE LA ESTRUCTURA (GRUPO 2 - UTEC)
+    // -------------------------------------------------------------
+    const NODES = {
+      1: { x: 0.0, y: 0.0, z: 0.0 },
+      2: { x: 3.0, y: 2.0, z: 0.0 },
+      3: { x: 6.0, y: 4.0, z: 0.0 },
+      4: { x: 9.0, y: 6.0, z: 0.0 },
+      5: { x: 3.0, y: 0.0, z: 0.0 },
+      6: { x: 6.0, y: 0.0, z: 0.0 },
+      7: { x: 9.0, y: 0.0, z: 0.0 }
+    };
+
+    const ELEMENTS = [
+      { id: 1, ni: 1, nj: 2, pu: -27.35, type: 'C', loc: 'Cordón Superior', sec: '2L 2-1/2"x2-1/2"x3/16"x3/8"', cap: 50.39 },
+      { id: 2, ni: 2, nj: 3, pu: -13.06, type: 'C', loc: 'Cordón Superior', sec: '2L 2"x2"x1/8"x3/8"', cap: 171.1 },
+      { id: 3, ni: 3, nj: 4, pu: 1.99,   type: 'T', loc: 'Cordón Superior', sec: '2L 2"x2"x1/8"x3/8"', cap: 171.1 },
+      { id: 4, ni: 1, nj: 5, pu: 11.77,  type: 'T', loc: 'Cordón Inferior', sec: '2L 2"x2"x1/8"x3/8"', cap: 171.1 },
+      { id: 5, ni: 5, nj: 6, pu: 11.77,  type: 'T', loc: 'Cordón Inferior', sec: '2L 2"x2"x1/8"x3/8"', cap: 171.1 },
+      { id: 6, ni: 6, nj: 7, pu: -2.15,  type: 'C', loc: 'Cordón Inferior', sec: '2L 2"x2"x1/8"x3/8"', cap: 171.1 },
+      { id: 7, ni: 5, nj: 2, pu: 0.00,   type: '0', loc: 'Montante Intermedia', sec: '2L 2"x2"x1/8"x3/8"', cap: 171.1 },
+      { id: 8, ni: 6, nj: 3, pu: 9.28,   type: 'T', loc: 'Montante Central', sec: '2L 2"x2"x1/8"x3/8"', cap: 171.1 },
+      { id: 9, ni: 7, nj: 4, pu: -9.28,  type: 'C', loc: 'Montante Extremo', sec: '2L 2"x2"x1/8"x3/8"', cap: 171.1 },
+      { id: 10, ni: 2, nj: 6, pu: -16.74, type: 'C', loc: 'Diagonal Descendente', sec: '2L 2"x2"x1/8"x3/8"', cap: 171.1 },
+      { id: 11, ni: 3, nj: 7, pu: -23.21, type: 'C', loc: 'Diagonal Descendente', sec: '2L 2"x2"x1/8"x3/8"', cap: 171.1 }
+    ];
+
+    // Three.js State
+    let scene, camera, renderer, controls;
+    let mainTrussGroup = new THREE.Group();
+    let buildingGroup = new THREE.Group();
+    let purlinsGroup = new THREE.Group();
+    let loadsGroup = new THREE.Group();
+    let deadLoadGroup = new THREE.Group();
+    let liveLoadGroup = new THREE.Group();
+    let windLoadGroup = new THREE.Group();
+    let roofPlaneGroup = new THREE.Group();
+    let nodalLoadsGroup = new THREE.Group();
+    let supportsGroup = new THREE.Group();
+    let gussetsGroup = new THREE.Group();
+    
+    // Wind and Dynamic Load Animation State
+    let windSimulationGroup = new THREE.Group();
+    let windVectorsDecompGroup = new THREE.Group();
+    let windParticlesMesh = null;
+    let windParticlesData = [];
+    let windStreamlinesGroup = new THREE.Group();
+    let windSpeedMode = 'normal'; // 'breeze' (40 km/h), 'normal' (75 km/h), 'gust' (105 km/h)
+    let windGustBurstTime = 0.0;
+    let isWindFlowActive = true;
+    let isWindPulseActive = true;
+    let isWindDecompActive = false;
+    let isGravityAnimActive = true;
+    let simClock = new THREE.Clock();
+    let windArrowsList = [];
+    let deadArrowsList = [];
+    let liveArrowsList = [];
+
+    // Joint and Cross sections groups
+    let jointDetailGroup = new THREE.Group();
+    let sectionTensionGroup = new THREE.Group();
+    let sectionCompGroup = new THREE.Group();
+
+    let currentTab = 'truss';
+    let currentColorMode = 'forces';
+    let autoRotate = false;
+    let raycaster = new THREE.Raycaster();
+    let mouse = new THREE.Vector2();
+    let clickableElements = [];
+    let hoveredMesh = null;
+    let selectedElement = ELEMENTS[0];
+
+    // Colors
+    const COLOR_TENSION = new THREE.Color(0x0284c7);
+    const COLOR_COMPRESSION = new THREE.Color(0xdc2626);
+    const COLOR_NEUTRAL = new THREE.Color(0x64748b);
+    const COLOR_STEEL = new THREE.Color(0x334155);
+    let grid;
+    let isWhiteTheme = true;
+
+    // -------------------------------------------------------------
+    // HELPER: TEXT SPRITES PARA MEDIDAS 3D FLOTANTES (ESCALA CALIBRADA)
+    // -------------------------------------------------------------
+    function createTextSprite(text, bgCol, textCol, scaleFactor = 1.0) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.font = 'bold 24px "Segoe UI", sans-serif';
+      const textWidth = ctx.measureText(text).width;
+      
+      canvas.height = 72;
+      canvas.width = Math.max(180, Math.ceil(textWidth + 36));
+
+      // Re-aplicar fuente tras definir dimensiones del canvas
+      ctx.font = 'bold 24px "Segoe UI", sans-serif';
+      ctx.fillStyle = bgCol || 'rgba(255, 255, 255, 0.96)';
+      ctx.strokeStyle = '#0284c7';
+      ctx.lineWidth = 2.0;
+      
+      // Fondo redondeado elegante
+      ctx.beginPath();
+      ctx.roundRect(4, 4, canvas.width - 8, canvas.height - 8, 10);
+      ctx.fill();
+      ctx.stroke();
+
+      // Texto centrado
+      ctx.fillStyle = textCol || '#0f172a';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.minFilter = THREE.LinearFilter;
+      const mat = new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true });
+      const sprite = new THREE.Sprite(mat);
+      
+      const aspect = canvas.width / canvas.height;
+      sprite.scale.set(0.18 * aspect * scaleFactor, 0.18 * scaleFactor, 1.0);
+      return sprite;
+    }
+
+    // Helper: Dimensión 3D con línea y marcas de cota
+    function create3DDimension(pStart, pEnd, labelText, offsetVector, colorHex = 0x0284c7, spriteOffset = 0.15) {
+      const dimGroup = new THREE.Group();
+      
+      const vStart = new THREE.Vector3(...pStart).add(offsetVector);
+      const vEnd = new THREE.Vector3(...pEnd).add(offsetVector);
+      
+      // Líneas de extensión delgadas
+      const extMat = new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.6 });
+      const l1Geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...pStart), vStart]);
+      const l2Geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...pEnd), vEnd]);
+      dimGroup.add(new THREE.Line(l1Geo, extMat));
+      dimGroup.add(new THREE.Line(l2Geo, extMat));
+
+      // Línea principal de cota
+      const dimMat = new THREE.LineBasicMaterial({ color: colorHex, linewidth: 2 });
+      const mainGeo = new THREE.BufferGeometry().setFromPoints([vStart, vEnd]);
+      dimGroup.add(new THREE.Line(mainGeo, dimMat));
+
+      // Ticks en extremos
+      const dir = new THREE.Vector3().subVectors(vEnd, vStart).normalize();
+      const perp = new THREE.Vector3(-dir.y, dir.x, dir.z).multiplyScalar(0.04);
+      
+      const tick1Geo = new THREE.BufferGeometry().setFromPoints([vStart.clone().sub(perp), vStart.clone().add(perp)]);
+      const tick2Geo = new THREE.BufferGeometry().setFromPoints([vEnd.clone().sub(perp), vEnd.clone().add(perp)]);
+      dimGroup.add(new THREE.Line(tick1Geo, dimMat));
+      dimGroup.add(new THREE.Line(tick2Geo, dimMat));
+
+      // Texto Sprite en punto medio
+      const mid = new THREE.Vector3().addVectors(vStart, vEnd).multiplyScalar(0.5);
+      const sprite = createTextSprite(labelText, 'rgba(255, 255, 255, 0.95)', '#0f172a', 0.85);
+      sprite.position.copy(mid).add(perp.clone().multiplyScalar(spriteOffset / 0.04));
+      dimGroup.add(sprite);
+
+      return dimGroup;
+    }
+
+    // -------------------------------------------------------------
+    // INICIALIZACIÓN THREE.JS
+    // -------------------------------------------------------------
+    function init() {
+      const container = document.getElementById('canvas-container');
+      
+      // Scene con Fondo Blanco Estudio (alta claridad sin opacar elementos)
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xffffff);
+      scene.fog = null;
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.set(17, 12, 22);
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      // Controls
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.autoRotate = false;
+      controls.target.set(4.5, 2.5, 3.25);
+
+      // Lighting de estudio fotográfico neutro
+      setupLighting();
+
+      // Build 3D models
+      buildMainTruss();
+      buildBuildingBays(); // 4 armaduras y EXACTAMENTE 4 correas en nudos
+      buildSupports();
+      buildLoads();
+      buildGussets();
+
+      // Modelos detallados de sección y nudo
+      buildJointDetail();
+      buildSection3D(sectionTensionGroup, 50.8, 3.175, 9.525, 0x0284c7, '2L 2"x2"x1/8"x3/8" (Tracción)');
+      buildSection3D(sectionCompGroup, 63.5, 4.762, 9.525, 0xdc2626, '2L 2-1/2"x2-1/2"x3/16"x3/8" (Compresión)');
+
+      scene.add(mainTrussGroup);
+      scene.add(buildingGroup);
+      scene.add(purlinsGroup);
+      scene.add(loadsGroup);
+      scene.add(windSimulationGroup);
+      scene.add(windVectorsDecompGroup);
+      scene.add(supportsGroup);
+      scene.add(gussetsGroup);
+      
+      jointDetailGroup.visible = false;
+      sectionTensionGroup.visible = false;
+      sectionCompGroup.visible = false;
+      scene.add(jointDetailGroup);
+      scene.add(sectionTensionGroup);
+      scene.add(sectionCompGroup);
+
+      // Grid de referencia arquitectónico limpio
+      grid = new THREE.GridHelper(40, 40, 0x94a3b8, 0xe2e8f0);
+      grid.position.set(4.5, -0.05, 3.25);
+      scene.add(grid);
+
+      // Events
+      window.addEventListener('resize', onWindowResize, false);
+      window.addEventListener('mousemove', onMouseMove, false);
+      window.addEventListener('click', onClick, false);
+
+      setupUI();
+      selectElement(ELEMENTS[0]);
+
+      animate();
+    }
+
+    // -------------------------------------------------------------
+    // ILUMINACIÓN REALISTA DE ESTUDIO (SIN TINTE AZUL OSCURIDAD)
+    // -------------------------------------------------------------
+    function setupLighting() {
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+      scene.add(ambientLight);
+
+      const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.85);
+      dirLight1.position.set(20, 30, 20);
+      dirLight1.castShadow = true;
+      dirLight1.shadow.mapSize.width = 2048;
+      dirLight1.shadow.mapSize.height = 2048;
+      scene.add(dirLight1);
+
+      const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.55);
+      dirLight2.position.set(-18, 15, -15);
+      scene.add(dirLight2);
+
+      const dirLight3 = new THREE.DirectionalLight(0xffffff, 0.40);
+      dirLight3.position.set(0, 25, 0);
+      scene.add(dirLight3);
+    }
+
+    function toggleTheme() {
+      isWhiteTheme = !isWhiteTheme;
+      document.body.classList.toggle('dark-theme', !isWhiteTheme);
+      const btnTxt = document.getElementById('txt-theme');
+      if (isWhiteTheme) {
+        scene.background = new THREE.Color(0xffffff);
+        if (grid) {
+          scene.remove(grid);
+          grid = new THREE.GridHelper(40, 40, 0x94a3b8, 0xe2e8f0);
+          grid.position.set(4.5, -0.05, 3.25);
+          scene.add(grid);
+        }
+        if (btnTxt) btnTxt.innerText = '🌙 Modo Oscuro';
+      } else {
+        scene.background = new THREE.Color(0x0a0f1d);
+        if (grid) {
+          scene.remove(grid);
+          grid = new THREE.GridHelper(40, 40, 0x1e293b, 0x0f172a);
+          grid.position.set(4.5, -0.05, 3.25);
+          scene.add(grid);
+        }
+        if (btnTxt) btnTxt.innerText = '☀️ Fondo Blanco';
+      }
+    }
+
+    // -------------------------------------------------------------
+    // HELPER: CONSTRUCTOR DE PERFIL REAL 2L (DOBLE ÁNGULO ESPALDA CON ESPALDA)
+    // -------------------------------------------------------------
+    function create2LMemberMesh(p1, p2, z0, b, t, tp, material) {
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const length = Math.hypot(dx, dy);
+      const theta = Math.atan2(dy, dx);
+
+      // Forma Ángulo L Frontal (+Z, sobre cara exterior z = +tp/2)
+      const shapeFront = new THREE.Shape();
+      shapeFront.moveTo(-b / 2, tp / 2);
+      shapeFront.lineTo(b / 2, tp / 2);
+      shapeFront.lineTo(b / 2, tp / 2 + t);
+      shapeFront.lineTo(-b / 2 + t, tp / 2 + t);
+      shapeFront.lineTo(-b / 2 + t, tp / 2 + b);
+      shapeFront.lineTo(-b / 2, tp / 2 + b);
+      shapeFront.closePath();
+
+      // Forma Ángulo L Posterior (-Z, simétrico reflejado sobre cara z = -tp/2)
+      const shapeBack = new THREE.Shape();
+      shapeBack.moveTo(-b / 2, -tp / 2);
+      shapeBack.lineTo(b / 2, -tp / 2);
+      shapeBack.lineTo(b / 2, -tp / 2 - t);
+      shapeBack.lineTo(-b / 2 + t, -tp / 2 - t);
+      shapeBack.lineTo(-b / 2 + t, -tp / 2 - b);
+      shapeBack.lineTo(-b / 2, -tp / 2 - b);
+      shapeBack.closePath();
+
+      // Extrusión a lo largo del eje longitudinal de la barra
+      const geom = new THREE.ExtrudeGeometry([shapeFront, shapeBack], {
+        depth: length,
+        bevelEnabled: false
+      });
+
+      const mesh = new THREE.Mesh(geom, material);
+
+      // Base ortonormal orientada para mantener la cartela en el plano XY:
+      // ux = Vector perpendicular en plano XY (-sin theta, cos theta, 0)
+      // uy = Vector normal fuera del plano Z (0, 0, 1) -> espesor y separación cartela
+      // uz = Vector directriz longitudinal (cos theta, sin theta, 0) -> extrusión
+      const ux = new THREE.Vector3(-Math.sin(theta), Math.cos(theta), 0);
+      const uy = new THREE.Vector3(0, 0, 1);
+      const uz = new THREE.Vector3(Math.cos(theta), Math.sin(theta), 0);
+      const rotMat = new THREE.Matrix4().makeBasis(ux, uy, uz);
+
+      mesh.quaternion.setFromRotationMatrix(rotMat);
+      mesh.position.set(p1.x, p1.y, z0);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+
+      return { mesh, length };
+    }
+
+    // -------------------------------------------------------------
+    // CONSTRUCCIÓN DE LA ARMADURA PRINCIPAL CON PERFILES 2L REALES
+    // -------------------------------------------------------------
+    function buildMainTruss() {
+      clickableElements = [];
+
+      ELEMENTS.forEach(elem => {
+        const p1 = new THREE.Vector3(NODES[elem.ni].x, NODES[elem.ni].y, 0);
+        const p2 = new THREE.Vector3(NODES[elem.nj].x, NODES[elem.nj].y, 0);
+
+        // Dimensiones exactas de perfil:
+        // Elemento 1: 2L 2-1/2"x2-1/2"x3/16"x3/8" (Compresión crítica)
+        // Elementos 2 a 11: 2L 2"x2"x1/8"x3/8" (Sección estándar)
+        const isCompChord = (elem.id === 1);
+        const b = isCompChord ? 0.078 : 0.058;    // Ancho de ala calibrado para visualización 3D
+        const t = isCompChord ? 0.0075 : 0.005;  // Espesor de ala
+        const tp = 0.012;                        // Cartela 3/8" (9.5 mm)
+
+        let color = COLOR_NEUTRAL;
+        if (elem.type === 'C') color = COLOR_COMPRESSION;
+        else if (elem.type === 'T') color = COLOR_TENSION;
+
+        const material = new THREE.MeshStandardMaterial({
+          color: color,
+          metalness: 0.70,
+          roughness: 0.30
+        });
+
+        const { mesh, length } = create2LMemberMesh(p1, p2, 0, b, t, tp, material);
+
+        mesh.userData = {
+          element: elem,
+          baseColor: color,
+          length: length
+        };
+
+        clickableElements.push(mesh);
+        mainTrussGroup.add(mesh);
+      });
+    }
+
+    // -------------------------------------------------------------
+    // CONSTRUCCIÓN DE LA NAVE (4 ARMADURAS 2L + EXACTAMENTE 4 CORREAS)
+    // -------------------------------------------------------------
+    function buildBuildingBays() {
+      const baySpacing = 6.5; 
+      const otherTrussZ = [-baySpacing, baySpacing, baySpacing * 2]; // 4 pórticos en total
+      const totalLength = baySpacing * 3; // 19.5 m
+      const zCenter = baySpacing * 0.5;   // 3.25 m
+
+      const steelMat = new THREE.MeshStandardMaterial({
+        color: 0x475569,
+        metalness: 0.65,
+        roughness: 0.35,
+        transparent: true,
+        opacity: 0.88
+      });
+      const supportMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.7, roughness: 0.3 });
+
+      // 1. Las otras 3 armaduras gemelas con perfiles 2L reales
+      otherTrussZ.forEach(zOff => {
+        ELEMENTS.forEach(elem => {
+          const p1 = new THREE.Vector3(NODES[elem.ni].x, NODES[elem.ni].y, zOff);
+          const p2 = new THREE.Vector3(NODES[elem.nj].x, NODES[elem.nj].y, zOff);
+          
+          const isCompChord = (elem.id === 1);
+          const b = isCompChord ? 0.078 : 0.058;
+          const t = isCompChord ? 0.0075 : 0.005;
+          const tp = 0.012;
+
+          const { mesh } = create2LMemberMesh(p1, p2, zOff, b, t, tp, steelMat);
+          buildingGroup.add(mesh);
+        });
+
+        // Placas cartelas en cada nudo (espesor 3/8" = 0.012m entre las 2L)
+        Object.keys(NODES).forEach(id => {
+          const n = NODES[id];
+          const plateGeom = new THREE.CylinderGeometry(0.18, 0.18, 0.012, 8);
+          const plate = new THREE.Mesh(plateGeom, supportMat);
+          plate.position.set(n.x, n.y, zOff);
+          plate.rotation.x = Math.PI / 2;
+          buildingGroup.add(plate);
+        });
+
+        // Apoyo fijo
+        const pin1 = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.35, 4), supportMat);
+        pin1.position.set(NODES[1].x, NODES[1].y - 0.18, zOff);
+        buildingGroup.add(pin1);
+
+        // Apoyo rodillo inclinado a 30° (rotado en sentido contrario: +30°)
+        const rollerBay = new THREE.Group();
+        rollerBay.position.set(NODES[7].x, NODES[7].y - 0.15, zOff);
+        rollerBay.rotation.z = Math.PI / 6; // Inclinación a +30° (sentido contrario)
+
+        const rCylBay = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.45, 16), supportMat);
+        rCylBay.rotation.x = Math.PI / 2;
+        rollerBay.add(rCylBay);
+
+        const plateBay = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.05, 0.5), supportMat);
+        plateBay.position.y = -0.16;
+        rollerBay.add(plateBay);
+
+        buildingGroup.add(rollerBay);
+      });
+
+      // 2. CORREAS DE TECHO: EXACTAMENTE 4 CORREAS ÚNICAMENTE EN LOS NUDOS (1, 2, 3, 4)
+      const purlinPoints = [
+        { x: NODES[1].x, y: NODES[1].y, name: "Correa 1 (Nodo 1 - Alero)" },
+        { x: NODES[2].x, y: NODES[2].y, name: "Correa 2 (Nodo 2)" },
+        { x: NODES[3].x, y: NODES[3].y, name: "Correa 3 (Nodo 3)" },
+        { x: NODES[4].x, y: NODES[4].y, name: "Correa 4 (Nodo 4 - Cumbrera)" }
+      ];
+
+      const purlinMat = new THREE.MeshStandardMaterial({
+        color: 0x94a3b8,
+        metalness: 0.8,
+        roughness: 0.25
+      });
+
+      purlinPoints.forEach(pt => {
+        // Viga canal C o tubo estructural continuo de 19.5 m
+        const purlinGeom = new THREE.BoxGeometry(0.12, 0.16, totalLength);
+        const purlin = new THREE.Mesh(purlinGeom, purlinMat);
+        purlin.position.set(pt.x, pt.y + 0.11, zCenter);
+        purlin.castShadow = true;
+        purlinsGroup.add(purlin);
+
+        // Fijación a la cartela del nudo
+        const clipGeom = new THREE.BoxGeometry(0.14, 0.04, 0.2);
+        const clip = new THREE.Mesh(clipGeom, supportMat);
+        clip.position.set(pt.x, pt.y + 0.02, 0);
+        purlinsGroup.add(clip);
+      });
+    }
+
+    // -------------------------------------------------------------
+    // APOYOS ESTRUCTURALES
+    // -------------------------------------------------------------
+    function buildSupports() {
+      const pinMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.7, roughness: 0.3 });
+      
+      // Nodo 1: Articulación Fija
+      const p1 = NODES[1];
+      const pin = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.4, 4), pinMat);
+      pin.position.set(p1.x, p1.y - 0.2, 0);
+      supportsGroup.add(pin);
+
+      const plate1 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.06, 0.6), pinMat);
+      plate1.position.set(p1.x, p1.y - 0.42, 0);
+      supportsGroup.add(plate1);
+
+      // Nodo 7: Apoyo Rodillo Inclinado a 30° (rotado en sentido contrario: +30°)
+      const p7 = NODES[7];
+      const rollerGroup = new THREE.Group();
+      rollerGroup.position.set(p7.x, p7.y - 0.15, 0);
+      rollerGroup.rotation.z = Math.PI / 6; // +30° incline (sentido contrario al anterior -30°)
+
+      const rCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.5, 16), pinMat);
+      rCyl.rotation.x = Math.PI / 2;
+      rollerGroup.add(rCyl);
+
+      const plate7 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.05, 0.6), pinMat);
+      plate7.position.y = -0.16;
+      rollerGroup.add(plate7);
+
+      supportsGroup.add(rollerGroup);
+    }
+
+    // -------------------------------------------------------------
+    // CONSTRUCTOR DE FLECHAS VECTORIALES 3D (CALIBRACIÓN PRECISA)
+    // -------------------------------------------------------------
+    function create3DArrow(targetPos, dirVector, length, hexColor, emissiveHex, shaftRadius = 0.032, headRadius = 0.085, headLength = 0.26) {
+      const arrowGroup = new THREE.Group();
+      const normDir = dirVector.clone().normalize();
+      
+      const shaftLen = Math.max(0.1, length - headLength);
+      const mat = new THREE.MeshStandardMaterial({
+        color: hexColor,
+        emissive: emissiveHex || hexColor,
+        emissiveIntensity: 0.35,
+        metalness: 0.80,
+        roughness: 0.25
+      });
+
+      // Eje cilíndrico
+      const shaftGeo = new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLen, 12);
+      const shaft = new THREE.Mesh(shaftGeo, mat);
+      shaft.castShadow = true;
+
+      // Cabeza cónica
+      const headGeo = new THREE.ConeGeometry(headRadius, headLength, 16);
+      const head = new THREE.Mesh(headGeo, mat);
+      head.castShadow = true;
+
+      // Alineación a lo largo de +Y con ápice (punta) en el origen (0, 0, 0)
+      head.position.set(0, -headLength / 2, 0);
+      shaft.position.set(0, -headLength - shaftLen / 2, 0);
+
+      arrowGroup.add(shaft);
+      arrowGroup.add(head);
+
+      // Rotar para orientar el vector hacia normDir
+      const up = new THREE.Vector3(0, 1, 0);
+      const quat = new THREE.Quaternion().setFromUnitVectors(up, normDir);
+      arrowGroup.quaternion.copy(quat);
+
+      // Posicionar la punta exactamente sobre la superficie
+      arrowGroup.position.copy(targetPos);
+      arrowGroup.userData = { mat: mat, baseLength: length, origPos: targetPos.clone(), dir: normDir.clone() };
+
+      return arrowGroup;
+    }
+
+    // 1. Superficie de Cobertura Translúcida
+    function buildRoofPlane() {
+      roofPlaneGroup.clear();
+      const x1 = -0.2, y1 = (2/3) * x1 + 0.18;
+      const x2 = 9.2,  y2 = (2/3) * x2 + 0.18;
+      const z1 = -6.8, z2 = 13.3;
+
+      const pA = new THREE.Vector3(x1, y1, z1);
+      const pB = new THREE.Vector3(x2, y2, z1);
+      const pC = new THREE.Vector3(x2, y2, z2);
+      const pD = new THREE.Vector3(x1, y1, z2);
+
+      const geom = new THREE.BufferGeometry();
+      const vertices = new Float32Array([
+        pA.x, pA.y, pA.z,  pB.x, pB.y, pB.z,  pC.x, pC.y, pC.z,
+        pA.x, pA.y, pA.z,  pC.x, pC.y, pC.z,  pD.x, pD.y, pD.z
+      ]);
+      geom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+      geom.computeVertexNormals();
+
+      const roofMat = new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.18,
+        roughness: 0.25,
+        metalness: 0.35,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+
+      const roofMesh = new THREE.Mesh(geom, roofMat);
+      roofPlaneGroup.add(roofMesh);
+
+      // Líneas de juntas de planchas de cubierta a lo largo de Z
+      const lineMat = new THREE.LineBasicMaterial({ color: 0x0284c7, transparent: true, opacity: 0.38 });
+      for (let z = -6.5; z <= 13.1; z += 1.08) {
+        const lineGeo = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(x1, y1, z),
+          new THREE.Vector3(x2, y2, z)
+        ]);
+        roofPlaneGroup.add(new THREE.Line(lineGeo, lineMat));
+      }
+
+      // Bordes perimetrales de la plancha
+      const borderGeo = new THREE.BufferGeometry().setFromPoints([pA, pB, pC, pD, pA]);
+      const borderMat = new THREE.LineBasicMaterial({ color: 0x0284c7, linewidth: 2 });
+      roofPlaneGroup.add(new THREE.Line(borderGeo, borderMat));
+    }
+
+    // 2. Carga Muerta (D = 18 kg/m²): Vertical descendente en toda la cubierta
+    function buildDeadLoad() {
+      deadLoadGroup.clear();
+      deadArrowsList = [];
+      const xVals = [0.6, 1.8, 3.0, 4.4, 5.8, 7.2, 8.4];
+      const zVals = [-6.5, -3.25, 0.0, 3.25, 6.5, 9.75, 13.0];
+      const dir = new THREE.Vector3(0, -1, 0); // Vertical descendente (↓)
+      const len = 1.05;
+
+      xVals.forEach(x => {
+        const y = (2/3) * x + 0.18;
+        zVals.forEach(z => {
+          const target = new THREE.Vector3(x, y, z);
+          const arrow = create3DArrow(target, dir, len, 0xea580c, 0xc2410c, 0.030, 0.080, 0.24);
+          deadLoadGroup.add(arrow);
+          deadArrowsList.push(arrow);
+        });
+      });
+
+      // Etiquetas 3D flotantes
+      const label1 = createTextSprite("D = 18.0 kg/m² (Carga Muerta)", "rgba(255, 247, 237, 0.95)", "#c2410c", 0.85);
+      label1.position.set(3.0, 2.0 + 0.18 + len + 0.45, 3.25);
+      deadLoadGroup.add(label1);
+
+      const label2 = createTextSprite("D = 18.0 kg/m² (Carga Muerta)", "rgba(255, 247, 237, 0.95)", "#c2410c", 0.85);
+      label2.position.set(6.5, 4.33 + 0.18 + len + 0.45, 0.0);
+      deadLoadGroup.add(label2);
+    }
+
+    // 3. Carga Viva (L = 30 kg/m²): Vertical descendente en proyección horizontal
+    function buildLiveLoad() {
+      liveLoadGroup.clear();
+      liveArrowsList = [];
+      const xVals = [0.9, 2.3, 3.7, 5.1, 6.5, 7.9];
+      const zVals = [-5.2, -1.8, 1.6, 5.0, 8.4, 11.8];
+      const dir = new THREE.Vector3(0, -1, 0); // Vertical descendente (↓)
+      const len = 1.45; // Mayor longitud por mayor magnitud (30 vs 18)
+
+      xVals.forEach(x => {
+        const y = (2/3) * x + 0.18;
+        zVals.forEach(z => {
+          const target = new THREE.Vector3(x, y, z);
+          const arrow = create3DArrow(target, dir, len, 0x10b981, 0x059669, 0.034, 0.090, 0.28);
+          liveLoadGroup.add(arrow);
+          liveArrowsList.push(arrow);
+        });
+      });
+
+      // Etiqueta 3D flotante
+      const label1 = createTextSprite("L = 30.0 kg/m² (Sobrecarga Viva - NTP E.020)", "rgba(236, 253, 245, 0.95)", "#047857", 0.85);
+      label1.position.set(4.5, 3.0 + 0.18 + len + 0.50, 3.25);
+      liveLoadGroup.add(label1);
+    }
+
+    // 4. Carga de Viento (W = 20 kg/m²): PERPENDICULAR a la superficie de cubierta (θ = 33.69°)
+    function buildWindLoad() {
+      windLoadGroup.clear();
+      windArrowsList = [];
+      const theta = Math.atan(2/3); // 33.6900675°
+      // Vector normal perpendicular orientado hacia la superficie:
+      const normDir = new THREE.Vector3(Math.sin(theta), -Math.cos(theta), 0).normalize();
+      const len = 1.15;
+
+      const xVals = [0.6, 1.8, 3.0, 4.4, 5.8, 7.2, 8.4];
+      const zVals = [-6.5, -3.25, 0.0, 3.25, 6.5, 9.75, 13.0];
+
+      xVals.forEach(x => {
+        const y = (2/3) * x + 0.18;
+        zVals.forEach(z => {
+          const target = new THREE.Vector3(x, y, z);
+          const arrow = create3DArrow(target, normDir, len, 0x0284c7, 0x0369a1, 0.032, 0.085, 0.26);
+          windLoadGroup.add(arrow);
+          windArrowsList.push(arrow);
+        });
+      });
+
+      // Etiquetas 3D flotantes
+      const label1 = createTextSprite("W = 20.0 kg/m² (Presión de Viento ⟂ a Cubierta)", "rgba(240, 249, 255, 0.95)", "#0284c7", 0.85);
+      const labelPos = new THREE.Vector3(4.0, (2/3)*4.0 + 0.18, 3.25).sub(normDir.clone().multiplyScalar(len + 0.55));
+      label1.position.copy(labelPos);
+      windLoadGroup.add(label1);
+
+      const label2 = createTextSprite("W = 20.0 kg/m² (⟂ a Cubierta)", "rgba(240, 249, 255, 0.95)", "#0284c7", 0.85);
+      const labelPos2 = new THREE.Vector3(6.5, (2/3)*6.5 + 0.18, 0.0).sub(normDir.clone().multiplyScalar(len + 0.55));
+      label2.position.copy(labelPos2);
+      windLoadGroup.add(label2);
+    }
+
+    // 5. Cargas Concentradas en Nudos del Eje C (kN)
+    function buildNodalLoads() {
+      nodalLoadsGroup.clear();
+      const nodalData = [
+        { id: 1, x: 0.0, y: 0.0, pd: 2.07, pl: 2.87, pw: 2.30 },
+        { id: 2, x: 3.0, y: 2.0, pd: 4.14, pl: 5.74, pw: 4.60 },
+        { id: 3, x: 6.0, y: 4.0, pd: 4.14, pl: 5.74, pw: 4.60 },
+        { id: 4, x: 9.0, y: 6.0, pd: 2.07, pl: 2.87, pw: 2.30 }
+      ];
+
+      nodalData.forEach(d => {
+        const target = new THREE.Vector3(d.x, d.y + 0.05, 0);
+        const arrow = create3DArrow(target, new THREE.Vector3(0, -1, 0), 0.9, 0xf59e0b, 0xd97706, 0.045, 0.11, 0.30);
+        nodalLoadsGroup.add(arrow);
+
+        const lbl = createTextSprite(`N${d.id}: PD=${d.pd}kN, PL=${d.pl}kN, PW=${d.pw}kN`, "rgba(255, 255, 255, 0.95)", "#b45309", 0.72);
+        lbl.position.set(d.x, d.y + 1.25, 0);
+        nodalLoadsGroup.add(lbl);
+      });
+    }
+
+    // -------------------------------------------------------------
+    // SIMULADOR AERODINÁMICO DE VIENTO (CORRIENTES Y PARTÍCULAS 3D)
+    // -------------------------------------------------------------
+    function getWindFlowPosition(x, hOffset, z) {
+      let y;
+      if (x < 0) {
+        // Aproximación horizontal con ligera aceleración/elevación al acercarse a la nave
+        const t = Math.max(0, (x + 7.0) / 7.0);
+        y = 1.0 + hOffset + 0.25 * t * t;
+      } else if (x <= 9.0) {
+        // Flujo paralelo a la cubierta inclinada (θ = 33.69°, pendiente 2/3)
+        y = (2/3) * x + 0.35 + hOffset;
+      } else {
+        // Desprendimiento aerodinámico y estela de sotavento tras la cumbrera
+        const dx = x - 9.0;
+        y = 6.35 + hOffset * 0.85 - 0.06 * dx;
+      }
+      return new THREE.Vector3(x, y, z);
+    }
+
+    function buildWindSimulation() {
+      windSimulationGroup.clear();
+      windStreamlinesGroup.clear();
+      windParticlesData = [];
+
+      // 1. Líneas de Corriente Aerodinámicas fijas (Streamlines)
+      const streamlineMat = new THREE.LineDashedMaterial({
+        color: 0x38bdf8,
+        dashSize: 0.6,
+        gapSize: 0.3,
+        transparent: true,
+        opacity: 0.38,
+        linewidth: 1
+      });
+
+      const zBays = [-6.2, -4.1, -2.0, 0.0, 2.1, 4.2, 6.5, 8.6, 10.7, 12.8];
+      const hOffsets = [0.45, 1.15, 1.95];
+
+      zBays.forEach(z => {
+        hOffsets.forEach(h => {
+          const points = [];
+          for (let x = -6.5; x <= 14.0; x += 0.5) {
+            points.push(getWindFlowPosition(x, h, z));
+          }
+          const geom = new THREE.BufferGeometry().setFromPoints(points);
+          const line = new THREE.Line(geom, streamlineMat);
+          line.computeLineDistances();
+          windStreamlinesGroup.add(line);
+        });
+      });
+      windSimulationGroup.add(windStreamlinesGroup);
+
+      // 2. Sistema de Trazas/Partículas Dinámicas de Viento (320 estelas)
+      const particleCount = 320;
+      const positions = new Float32Array(particleCount * 2 * 3);
+      const colors = new Float32Array(particleCount * 2 * 3);
+
+      for (let i = 0; i < particleCount; i++) {
+        const xInit = -7.0 + Math.random() * 21.0;
+        const zInit = -6.4 + Math.random() * 19.4;
+        const hInit = 0.35 + Math.random() * 2.1;
+        const speed = 0.85 + Math.random() * 0.35;
+        const streakLen = 0.55 + Math.random() * 0.45;
+
+        windParticlesData.push({
+          x: xInit,
+          z: zInit,
+          h: hInit,
+          speed: speed,
+          streakLen: streakLen
+        });
+
+        // Color degradado: Cabeza blanco brillante (1, 1, 1), cola azul cian (0.15, 0.65, 0.98)
+        colors[i * 6 + 0] = 0.95;
+        colors[i * 6 + 1] = 0.98;
+        colors[i * 6 + 2] = 1.0;
+
+        colors[i * 6 + 3] = 0.15;
+        colors[i * 6 + 4] = 0.65;
+        colors[i * 6 + 5] = 0.98;
+      }
+
+      const pGeom = new THREE.BufferGeometry();
+      pGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      pGeom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      const pMat = new THREE.LineBasicMaterial({
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.88,
+        blending: THREE.AdditiveBlending,
+        linewidth: 2
+      });
+
+      windParticlesMesh = new THREE.LineSegments(pGeom, pMat);
+      windSimulationGroup.add(windParticlesMesh);
+
+      // Etiqueta 3D flotante
+      const windTitleLabel = createTextSprite("💨 Flujo Aerodinámico de Viento (Barlovento → Sotavento)", "rgba(240, 249, 255, 0.95)", "#0284c7", 0.9);
+      windTitleLabel.position.set(-2.0, 4.8, 3.25);
+      windSimulationGroup.add(windTitleLabel);
+    }
+
+    // -------------------------------------------------------------
+    // DESCOMPOSICIÓN VECTORIAL DE LA CARGA DE VIENTO (Wx, Wy)
+    // -------------------------------------------------------------
+    function buildWindDecomposition() {
+      windVectorsDecompGroup.clear();
+
+      const nodalWind = [
+        { id: 1, x: 0.0, y: 0.0, pw: 2.30, wx: 1.28, wy: -1.91 },
+        { id: 2, x: 3.0, y: 2.0, pw: 4.60, wx: 2.55, wy: -3.83 },
+        { id: 3, x: 6.0, y: 4.0, pw: 4.60, wx: 2.55, wy: -3.83 },
+        { id: 4, x: 9.0, y: 6.0, pw: 2.30, wx: 1.28, wy: -1.91 }
+      ];
+
+      const theta = Math.atan(2/3);
+      const normDir = new THREE.Vector3(Math.sin(theta), -Math.cos(theta), 0).normalize();
+
+      nodalWind.forEach(d => {
+        const origin = new THREE.Vector3(d.x, d.y + 0.05, 0);
+
+        // Vector normal W⟂ (Cian)
+        const arrowNorm = create3DArrow(origin, normDir, 1.25, 0x0284c7, 0x0369a1, 0.040, 0.10, 0.30);
+        windVectorsDecompGroup.add(arrowNorm);
+
+        // Vector horizontal Wx (+X, verde esmeralda)
+        const arrowX = create3DArrow(origin, new THREE.Vector3(1, 0, 0), 1.05, 0x10b981, 0x059669, 0.035, 0.09, 0.26);
+        windVectorsDecompGroup.add(arrowX);
+
+        // Vector vertical Wy (-Y, ámbar/naranja)
+        const arrowY = create3DArrow(origin, new THREE.Vector3(0, -1, 0), 1.20, 0xf59e0b, 0xd97706, 0.035, 0.09, 0.26);
+        windVectorsDecompGroup.add(arrowY);
+
+        // Etiqueta explicativa
+        const lbl = createTextSprite(
+          `N${d.id}: W⟂=${d.pw}kN | Wx=+${d.wx}kN (→) | Wy=${d.wy}kN (↓)`,
+          "rgba(255, 255, 255, 0.96)",
+          "#0284c7",
+          0.72
+        );
+        lbl.position.set(d.x + 0.35, d.y + 1.35, 0);
+        windVectorsDecompGroup.add(lbl);
+      });
+    }
+
+    // -------------------------------------------------------------
+    // ACTUALIZADOR DE SIMULACIÓN AERODINÁMICA Y OSCILACIÓN DE CARGAS
+    // -------------------------------------------------------------
+    function updateWindSimulation(dt) {
+      if (!dt || dt > 0.1) dt = 0.016;
+
+      const time = simClock.getElapsedTime();
+
+      // Control de velocidad base según selector
+      let baseSpeed = 8.5; // m/s en escala visual
+      if (windSpeedMode === 'breeze') baseSpeed = 4.5;
+      else if (windSpeedMode === 'gust') baseSpeed = 14.5;
+
+      // Efecto de ráfaga puntual (burst)
+      let burstEffect = 0.0;
+      if (windGustBurstTime > 0) {
+        windGustBurstTime -= dt;
+        burstEffect = Math.sin((windGustBurstTime / 2.5) * Math.PI) * 1.5;
+      }
+
+      // Factor de ráfaga armónica natural
+      let gustFreq = (windSpeedMode === 'gust') ? 4.2 : 2.4;
+      let gustAmplitude = isWindPulseActive ? (0.22 + 0.10 * (baseSpeed / 8.5)) : 0.0;
+      let gustFactor = 1.0 + gustAmplitude * Math.sin(time * gustFreq) + burstEffect;
+
+      // 1. Actualizar Partículas de Flujo Aerodinámico
+      if (isWindFlowActive && windSimulationGroup.visible && windParticlesMesh) {
+        const posAttr = windParticlesMesh.geometry.attributes.position;
+        const positions = posAttr.array;
+        const speedFactor = baseSpeed * (1.0 + burstEffect * 0.7);
+
+        for (let i = 0; i < windParticlesData.length; i++) {
+          const p = windParticlesData[i];
+          p.x += dt * speedFactor * p.speed;
+
+          if (p.x > 14.5) {
+            p.x = -7.0 - Math.random() * 2.0;
+            p.z = -6.4 + Math.random() * 19.4;
+            p.h = 0.35 + Math.random() * 2.1;
+          }
+
+          const pHead = getWindFlowPosition(p.x, p.h, p.z);
+          const pTail = getWindFlowPosition(p.x - p.streakLen, p.h, p.z);
+
+          const idx = i * 6;
+          positions[idx + 0] = pHead.x;
+          positions[idx + 1] = pHead.y;
+          positions[idx + 2] = pHead.z;
+
+          positions[idx + 3] = pTail.x;
+          positions[idx + 4] = pTail.y;
+          positions[idx + 5] = pTail.z;
+        }
+        posAttr.needsUpdate = true;
+      }
+
+      // 2. Pulsación de Flechas de Viento (W = 20 kg/m²)
+      if (windLoadGroup.visible && windArrowsList.length > 0) {
+        const scaleVal = isWindPulseActive ? gustFactor : 1.0;
+        windArrowsList.forEach(arrow => {
+          arrow.scale.set(1.0, scaleVal, 1.0);
+          if (arrow.userData && arrow.userData.mat) {
+            arrow.userData.mat.emissiveIntensity = 0.28 + 0.28 * Math.max(0, scaleVal - 1.0);
+          }
+        });
+      }
+
+      // 3. Animación de Cargas Gravitacionales (D y L)
+      if (isGravityAnimActive) {
+        if (deadLoadGroup.visible && deadArrowsList.length > 0) {
+          const oscD = 1.0 + 0.07 * Math.sin(time * 2.2);
+          deadArrowsList.forEach(arrow => {
+            arrow.scale.set(1.0, oscD, 1.0);
+          });
+        }
+        if (liveLoadGroup.visible && liveArrowsList.length > 0) {
+          const oscL = 1.0 + 0.09 * Math.sin(time * 2.8 + 0.5);
+          liveArrowsList.forEach(arrow => {
+            arrow.scale.set(1.0, oscL, 1.0);
+          });
+        }
+      }
+    }
+
+    function updateWindBadge() {
+      const badge = document.getElementById('wind-badge');
+      const chkWind = document.getElementById('chk-load-wind');
+      if (!badge) return;
+      if (chkWind && chkWind.checked) {
+        let label = "ACTIVO (75 km/h)";
+        if (windSpeedMode === 'breeze') label = "ACTIVO (40 km/h)";
+        else if (windSpeedMode === 'gust') label = "TEMPORAL (105 km/h)";
+        badge.innerText = label;
+        badge.style.background = "rgba(2, 132, 199, 0.16)";
+        badge.style.color = "#0284c7";
+        badge.style.borderColor = "rgba(2, 132, 199, 0.4)";
+        badge.classList.add('wind-active-badge');
+      } else {
+        badge.innerText = "INACTIVO";
+        badge.style.background = "rgba(100, 116, 139, 0.15)";
+        badge.style.color = "var(--text-muted)";
+        badge.style.borderColor = "rgba(100, 116, 139, 0.3)";
+        badge.classList.remove('wind-active-badge');
+      }
+    }
+
+    // -------------------------------------------------------------
+    // GESTOR DE CARGAS Y ENSAMBLAJE
+    // -------------------------------------------------------------
+    function buildLoads() {
+      loadsGroup.clear();
+      
+      buildRoofPlane();
+      buildDeadLoad();
+      buildLiveLoad();
+      buildWindLoad();
+      buildNodalLoads();
+      buildWindSimulation();
+      buildWindDecomposition();
+
+      loadsGroup.add(roofPlaneGroup);
+      loadsGroup.add(deadLoadGroup);
+      loadsGroup.add(liveLoadGroup);
+      loadsGroup.add(windLoadGroup);
+      loadsGroup.add(nodalLoadsGroup);
+
+      // Estado inicial según checkboxes
+      const chkDead = document.getElementById('chk-load-dead');
+      const chkLive = document.getElementById('chk-load-live');
+      const chkWind = document.getElementById('chk-load-wind');
+      const chkRoof = document.getElementById('chk-roof-plane');
+      const chkNodal = document.getElementById('chk-nodal-loads');
+
+      deadLoadGroup.visible = chkDead ? chkDead.checked : true;
+      liveLoadGroup.visible = chkLive ? chkLive.checked : false;
+      windLoadGroup.visible = chkWind ? chkWind.checked : false;
+      roofPlaneGroup.visible = chkRoof ? chkRoof.checked : true;
+      nodalLoadsGroup.visible = chkNodal ? chkNodal.checked : false;
+
+      windSimulationGroup.visible = (chkWind ? chkWind.checked : false) && isWindFlowActive;
+      windVectorsDecompGroup.visible = (chkWind ? chkWind.checked : false) && isWindDecompActive;
+      updateWindBadge();
+    }
+
+    // -------------------------------------------------------------
+    // CARTELAS EN CADA NUDO (ARMADURA PRINCIPAL)
+    // -------------------------------------------------------------
+    function buildGussets() {
+      Object.keys(NODES).forEach(id => {
+        const n = NODES[id];
+        // Cartela de espesor exacto tp = 0.012 m (3/8") alojada entre las espaldas de los perfiles 2L
+        const plateGeom = new THREE.CylinderGeometry(0.20, 0.20, 0.012, 8);
+        const plateMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8, roughness: 0.3 });
+        const plate = new THREE.Mesh(plateGeom, plateMat);
+        plate.position.set(n.x, n.y, 0);
+        plate.rotation.x = Math.PI / 2;
+        gussetsGroup.add(plate);
+      });
+    }
+
+    // Referencias para interacción de despiece y visibilidad de soldaduras en la unión
+    let jointFrontAngles = [];
+    let jointBackAngles = [];
+    let jointFrontWelds = [];
+    let jointBackWelds = [];
+    let jointWeldsGroup = new THREE.Group();
+    let jointDimsGroup = new THREE.Group();
+
+    // -------------------------------------------------------------
+    // DETALLE DE UNIÓN DE NUDO 3D REALISTA (NODO 2 - UNIÓN SOLDADA)
+    // -------------------------------------------------------------
+    function buildJointDetail() {
+      jointDetailGroup.clear();
+      jointFrontAngles = [];
+      jointBackAngles = [];
+      jointFrontWelds = [];
+      jointBackWelds = [];
+      jointWeldsGroup = new THREE.Group();
+      jointWeldsGroup.name = "joint-welds";
+      jointDimsGroup = new THREE.Group();
+      jointDimsGroup.name = "joint-dimensions";
+
+      const tp = 0.09; // Espesor cartela en escala ampliada de detalle (3/8" = 9.5 mm)
+
+      const steelGussetMat = new THREE.MeshStandardMaterial({
+        color: 0x475569,
+        metalness: 0.80,
+        roughness: 0.30
+      });
+
+      const compMat = new THREE.MeshStandardMaterial({
+        color: 0xef4444,
+        metalness: 0.85,
+        roughness: 0.20
+      });
+
+      const neutralMat = new THREE.MeshStandardMaterial({
+        color: 0x94a3b8,
+        metalness: 0.80,
+        roughness: 0.30
+      });
+
+      const weldMat = new THREE.MeshStandardMaterial({
+        color: 0xf59e0b,
+        emissive: 0xd97706,
+        emissiveIntensity: 0.35,
+        metalness: 0.90,
+        roughness: 0.20
+      });
+
+      // 1. Plancha Cartela Central (Polígono estructural calculado para alojar cordones de filete y barras)
+      const gussetShape = new THREE.Shape();
+      gussetShape.moveTo(-0.915, -0.971);
+      gussetShape.lineTo(-0.250, -1.200);
+      gussetShape.lineTo(0.150, -1.200);
+      gussetShape.lineTo(1.148, -0.766);
+      gussetShape.lineTo(0.860, 0.874);
+      gussetShape.lineTo(-1.220, -0.513);
+      gussetShape.closePath();
+
+      const gussetGeom = new THREE.ExtrudeGeometry(gussetShape, { depth: tp, bevelEnabled: false });
+      gussetGeom.translate(0, 0, -tp / 2); // Centrado simétrico en Z: [-tp/2, +tp/2]
+      const gussetMesh = new THREE.Mesh(gussetGeom, steelGussetMat);
+      gussetMesh.castShadow = true;
+      gussetMesh.receiveShadow = true;
+      jointDetailGroup.add(gussetMesh);
+
+      // Helper para crear un miembro 2L soldado en la unión de nudo
+      function addJoint2LMember(name, dirVector, dStart, length, b, t, mat, L_weld) {
+        const u = dirVector.clone().normalize();
+        const theta = Math.atan2(u.y, u.x);
+
+        // Ángulo Frontal (+Z, sobre cara exterior z = +tp/2)
+        const sFront = new THREE.Shape();
+        sFront.moveTo(-b / 2, tp / 2);
+        sFront.lineTo(b / 2, tp / 2);
+        sFront.lineTo(b / 2, tp / 2 + t);
+        sFront.lineTo(-b / 2 + t, tp / 2 + t);
+        sFront.lineTo(-b / 2 + t, tp / 2 + b);
+        sFront.lineTo(-b / 2, tp / 2 + b);
+        sFront.closePath();
+
+        const geomF = new THREE.ExtrudeGeometry(sFront, { depth: length, bevelEnabled: false });
+        const meshF = new THREE.Mesh(geomF, mat);
+
+        // Ángulo Posterior (-Z, sobre cara exterior z = -tp/2)
+        const sBack = new THREE.Shape();
+        sBack.moveTo(-b / 2, -tp / 2);
+        sBack.lineTo(b / 2, -tp / 2);
+        sBack.lineTo(b / 2, -tp / 2 - t);
+        sBack.lineTo(-b / 2 + t, -tp / 2 - t);
+        sBack.lineTo(-b / 2 + t, -tp / 2 - b);
+        sBack.lineTo(-b / 2, -tp / 2 - b);
+        sBack.closePath();
+
+        const geomB = new THREE.ExtrudeGeometry(sBack, { depth: length, bevelEnabled: false });
+        const meshB = new THREE.Mesh(geomB, mat);
+
+        // Base ortonormal orientada exactamente en plano XY
+        const ux = new THREE.Vector3(-Math.sin(theta), Math.cos(theta), 0);
+        const uy = new THREE.Vector3(0, 0, 1);
+        const uz = new THREE.Vector3(Math.cos(theta), Math.sin(theta), 0);
+        const rotMat = new THREE.Matrix4().makeBasis(ux, uy, uz);
+        const quat = new THREE.Quaternion().setFromRotationMatrix(rotMat);
+
+        const pStart = u.clone().multiplyScalar(dStart);
+
+        const memberGroup = new THREE.Group();
+        meshF.quaternion.copy(quat);
+        meshF.position.copy(pStart);
+        meshF.castShadow = true;
+        meshB.quaternion.copy(quat);
+        meshB.position.copy(pStart);
+        meshB.castShadow = true;
+
+        memberGroup.add(meshF);
+        memberGroup.add(meshB);
+        jointFrontAngles.push(meshF);
+        jointBackAngles.push(meshB);
+        jointDetailGroup.add(memberGroup);
+
+        // Helper para crear cordones cilíndricos de soldadura de filete
+        const rw = 0.022; // Radio del cordón de filete (garganta visible)
+        function createWeldBeadMesh(len, posX, posY, posZ, rotAxis) {
+          const wGeom = new THREE.CylinderGeometry(rw, rw, len, 8);
+          const wMesh = new THREE.Mesh(wGeom, weldMat);
+          if (rotAxis === 'x') wMesh.rotation.z = Math.PI / 2;
+          else if (rotAxis === 'z') wMesh.rotation.x = Math.PI / 2;
+          wMesh.position.set(posX, posY, posZ);
+          wMesh.castShadow = true;
+          return wMesh;
+        }
+
+        // CORDONES DE SOLDADURA DE FILETE EN "U" (2 Longitudinales + 1 Transversal Frontal)
+        // 1. Soldaduras para el Ángulo Frontal (+Z, sobre plano de contacto z = +tp/2)
+        const frontWeldsGroup = new THREE.Group();
+        // Filete longitudinal superior (borde superior x = b/2)
+        const wLongF1 = createWeldBeadMesh(L_weld, b / 2, tp / 2, L_weld / 2, 'z');
+        frontWeldsGroup.add(wLongF1);
+        // Filete longitudinal inferior (borde inferior x = -b/2)
+        const wLongF2 = createWeldBeadMesh(L_weld, -b / 2, tp / 2, L_weld / 2, 'z');
+        frontWeldsGroup.add(wLongF2);
+        // Filete transversal en extremo frontal de la barra (z = 0)
+        const wTransF = createWeldBeadMesh(b, 0, tp / 2, 0, 'x');
+        frontWeldsGroup.add(wTransF);
+
+        frontWeldsGroup.quaternion.copy(quat);
+        frontWeldsGroup.position.copy(pStart);
+        jointWeldsGroup.add(frontWeldsGroup);
+        jointFrontWelds.push(frontWeldsGroup);
+
+        // 2. Soldaduras para el Ángulo Posterior (-Z, sobre plano de contacto z = -tp/2)
+        const backWeldsGroup = new THREE.Group();
+        // Filete longitudinal superior
+        const wLongB1 = createWeldBeadMesh(L_weld, b / 2, -tp / 2, L_weld / 2, 'z');
+        backWeldsGroup.add(wLongB1);
+        // Filete longitudinal inferior
+        const wLongB2 = createWeldBeadMesh(L_weld, -b / 2, -tp / 2, L_weld / 2, 'z');
+        backWeldsGroup.add(wLongB2);
+        // Filete transversal en extremo frontal
+        const wTransB = createWeldBeadMesh(b, 0, -tp / 2, 0, 'x');
+        backWeldsGroup.add(wTransB);
+
+        backWeldsGroup.quaternion.copy(quat);
+        backWeldsGroup.position.copy(pStart);
+        jointWeldsGroup.add(backWeldsGroup);
+        jointBackWelds.push(backWeldsGroup);
+      }
+
+      // Conexión de las 4 barras concurrentes en Nodo 2 mediante Soldadura de Filete:
+      // Barra 1: Cordón Superior entrante (desde N1 hacia N2) -> Compresión, 2.5", Lweld = 0.85
+      const u1 = new THREE.Vector3(-3.0, -2.0, 0).normalize();
+      addJoint2LMember('Barra 1 (2.5")', u1, 0.20, 2.2, 0.44, 0.042, compMat, 0.85);
+
+      // Barra 2: Cordón Superior saliente (desde N2 hacia N3) -> Compresión, 2", Lweld = 0.80
+      const u2 = new THREE.Vector3(3.0, 2.0, 0).normalize();
+      addJoint2LMember('Barra 2 (2")', u2, 0.20, 2.2, 0.35, 0.030, compMat, 0.80);
+
+      // Barra 7: Montante Vertical (desde N5 hacia N2) -> Fuerza Cero, 2", Lweld = 0.80
+      const u7 = new THREE.Vector3(0.0, -1.0, 0).normalize();
+      addJoint2LMember('Barra 7 (2")', u7, 0.25, 2.0, 0.35, 0.030, neutralMat, 0.80);
+
+      // Barra 10: Diagonal Descendente (hacia N6) -> Compresión, 2", Lweld = 0.80
+      const u10 = new THREE.Vector3(3.0, -2.0, 0).normalize();
+      addJoint2LMember('Barra 10 (2")', u10, 0.28, 2.1, 0.35, 0.030, compMat, 0.80);
+
+      jointDetailGroup.add(jointWeldsGroup);
+
+      // Cotas y Etiquetas 3D de la Unión
+      // Cota de espesor cartela
+      const cotaTp = create3DDimension([0, 0.95, -tp / 2], [0, 0.95, tp / 2], 'Cartela tp = 9.5 mm (3/8")', new THREE.Vector3(0, 0.18, 0), 0xf59e0b);
+      jointDimsGroup.add(cotaTp);
+
+      // Etiquetas informativas en sprites 3D con medición adaptativa
+      const spB1 = createTextSprite('Barra 1: 2L 2-1/2"x2-1/2"x3/16"x3/8" (Pu = -27.35 kN)', 'rgba(15, 23, 42, 0.92)', '#ef4444', 0.85);
+      spB1.position.set(-1.6, -1.0, tp / 2 + 0.3);
+      jointDimsGroup.add(spB1);
+
+      const spB2 = createTextSprite('Barra 2: 2L 2"x2"x1/8"x3/8" (Pu = -13.06 kN)', 'rgba(15, 23, 42, 0.92)', '#ef4444', 0.85);
+      spB2.position.set(1.6, 1.1, tp / 2 + 0.3);
+      jointDimsGroup.add(spB2);
+
+      const spB7 = createTextSprite('Montante 7: 2L 2"x2"x1/8"x3/8" (Fuerza Nula)', 'rgba(15, 23, 42, 0.92)', '#94a3b8', 0.85);
+      spB7.position.set(0.0, -1.6, tp / 2 + 0.3);
+      jointDimsGroup.add(spB7);
+
+      const spB10 = createTextSprite('Diagonal 10: 2L 2"x2"x1/8"x3/8" (Pu = -16.74 kN)', 'rgba(15, 23, 42, 0.92)', '#ef4444', 0.85);
+      spB10.position.set(1.6, -1.1, tp / 2 + 0.3);
+      jointDimsGroup.add(spB10);
+
+      const spWeld = createTextSprite('Cordones de Soldadura de Filete E70XX (en "U")', 'rgba(15, 23, 42, 0.92)', '#fbbf24', 0.88);
+      spWeld.position.set(0.0, 0.35, tp / 2 + 0.35);
+      jointDimsGroup.add(spWeld);
+
+      const spPlate = createTextSprite('Plancha Cartela Central tp = 9.5 mm (ASTM A36)', 'rgba(15, 23, 42, 0.92)', '#38bdf8', 0.80);
+      spPlate.position.set(0.0, -0.65, tp / 2 + 0.35);
+      jointDimsGroup.add(spPlate);
+
+      jointDetailGroup.add(jointDimsGroup);
+      jointDetailGroup.position.set(0, 0, 0);
+    }
+
+    // -------------------------------------------------------------
+    // CONSTRUCCIÓN DEL MODELO 3D DE SECCIÓN CON COTAS 3D INTEGRADAS
+    // -------------------------------------------------------------
+    function buildSection3D(targetGroup, b_mm, t_mm, tp_mm, themeColorHex, labelName) {
+      targetGroup.clear();
+
+      const scale = 0.038;
+      const b = b_mm * scale;
+      const t = t_mm * scale;
+      const tp = tp_mm * scale;
+      const extrudeLength = 4.5;
+
+      const angleMat = new THREE.MeshStandardMaterial({ color: themeColorHex, metalness: 0.8, roughness: 0.25 });
+      const gussetMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.7, roughness: 0.4 });
+      const weldMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.2 });
+
+      // 1. Cartela Central
+      const h_gusset = b * 1.55;
+      const gussetGeom = new THREE.BoxGeometry(tp, h_gusset, extrudeLength);
+      const gussetMesh = new THREE.Mesh(gussetGeom, gussetMat);
+      gussetMesh.name = "gusset-mesh";
+      gussetMesh.position.set(0, h_gusset / 2 - b * 0.2, 0);
+      targetGroup.add(gussetMesh);
+
+      // 2. Ángulo L Izquierdo
+      const shapeLeft = new THREE.Shape();
+      shapeLeft.moveTo(-tp / 2, 0);
+      shapeLeft.lineTo(-tp / 2 - b, 0);
+      shapeLeft.lineTo(-tp / 2 - b, t);
+      shapeLeft.lineTo(-tp / 2 - t, t);
+      shapeLeft.lineTo(-tp / 2 - t, b);
+      shapeLeft.lineTo(-tp / 2, b);
+      shapeLeft.closePath();
+
+      const extrudeSettings = { depth: extrudeLength, bevelEnabled: false };
+      const geomLeft = new THREE.ExtrudeGeometry(shapeLeft, extrudeSettings);
+      geomLeft.center();
+      const meshLeft = new THREE.Mesh(geomLeft, angleMat);
+      meshLeft.position.set(-tp / 2 - b / 2, b / 2, 0);
+      targetGroup.add(meshLeft);
+
+      // 3. Ángulo L Derecho
+      const shapeRight = new THREE.Shape();
+      shapeRight.moveTo(tp / 2, 0);
+      shapeRight.lineTo(tp / 2 + b, 0);
+      shapeRight.lineTo(tp / 2 + b, t);
+      shapeRight.lineTo(tp / 2 + t, t);
+      shapeRight.lineTo(tp / 2 + t, b);
+      shapeRight.lineTo(tp / 2, b);
+      shapeRight.closePath();
+
+      const geomRight = new THREE.ExtrudeGeometry(shapeRight, extrudeSettings);
+      geomRight.center();
+      const meshRight = new THREE.Mesh(geomRight, angleMat);
+      meshRight.position.set(tp / 2 + b / 2, b / 2, 0);
+      targetGroup.add(meshRight);
+
+      // 4. Soldaduras de filete
+      const weldsGroup = new THREE.Group();
+      weldsGroup.name = "welds-group";
+      const weldGeom = new THREE.CylinderGeometry(t * 0.4, t * 0.4, extrudeLength, 8);
+      
+      const w1 = new THREE.Mesh(weldGeom, weldMat);
+      w1.rotation.x = Math.PI / 2;
+      w1.position.set(tp / 2 + 0.02, 0.02, 0);
+      weldsGroup.add(w1);
+
+      const w2 = new THREE.Mesh(weldGeom, weldMat);
+      w2.rotation.x = Math.PI / 2;
+      w2.position.set(-tp / 2 - 0.02, 0.02, 0);
+      weldsGroup.add(w2);
+
+      const w3 = new THREE.Mesh(weldGeom, weldMat);
+      w3.rotation.x = Math.PI / 2;
+      w3.position.set(tp / 2 + 0.02, b - 0.02, 0);
+      weldsGroup.add(w3);
+
+      const w4 = new THREE.Mesh(weldGeom, weldMat);
+      w4.rotation.x = Math.PI / 2;
+      w4.position.set(-tp / 2 - 0.02, b - 0.02, 0);
+      weldsGroup.add(w4);
+      targetGroup.add(weldsGroup);
+
+      // 5. COTAS Y MEDIDAS 3D INTEGRADAS DIRECTAMENTE EN EL MODELO
+      const dimsGroup = new THREE.Group();
+      dimsGroup.name = "section-dimensions";
+
+      const zFace = extrudeLength / 2 + 0.05;
+
+      // Cota Ancho de Ala b (derecha)
+      const cotaB = create3DDimension(
+        [tp / 2, 0, zFace],
+        [tp / 2 + b, 0, zFace],
+        `b = ${b_mm.toFixed(1)} mm (${b_mm === 50.8 ? '2"' : '2-1/2"'})`,
+        new THREE.Vector3(0, -0.35, 0)
+      );
+      dimsGroup.add(cotaB);
+
+      // Cota Altura de Ala b (derecha vertical)
+      const cotaH = create3DDimension(
+        [tp / 2 + b, 0, zFace],
+        [tp / 2 + b, b, zFace],
+        `b = ${b_mm.toFixed(1)} mm`,
+        new THREE.Vector3(0.35, 0, 0)
+      );
+      dimsGroup.add(cotaH);
+
+      // Cota Espesor t
+      const cotaT = create3DDimension(
+        [-tp / 2 - b, 0, zFace],
+        [-tp / 2 - b, t, zFace],
+        `t = ${t_mm.toFixed(1)} mm (${t_mm < 4 ? '1/8"' : '3/16"'})`,
+        new THREE.Vector3(-0.35, 0, 0)
+      );
+      dimsGroup.add(cotaT);
+
+      // Cota Separación Cartela s (tp)
+      const cotaS = create3DDimension(
+        [-tp / 2, b + 0.1, zFace],
+        [tp / 2, b + 0.1, zFace],
+        `s = 9.5 mm (3/8")`,
+        new THREE.Vector3(0, 0.35, 0),
+        0xf59e0b
+      );
+      dimsGroup.add(cotaS);
+
+      // Cota Ancho Total B
+      const totalB_mm = (b_mm * 2 + tp_mm).toFixed(1);
+      const cotaTotal = create3DDimension(
+        [-tp / 2 - b, 0, zFace],
+        [tp / 2 + b, 0, zFace],
+        `B total = ${totalB_mm} mm`,
+        new THREE.Vector3(0, -0.75, 0),
+        0x10b981
+      );
+      dimsGroup.add(cotaTotal);
+
+      // Título en Sprite 3D superior
+      const titleSprite = createTextSprite(labelName, 'rgba(15, 23, 42, 0.95)', '#38bdf8', 1.2);
+      titleSprite.position.set(0, h_gusset + 0.45, zFace);
+      dimsGroup.add(titleSprite);
+
+      targetGroup.add(dimsGroup);
+      targetGroup.position.set(0, 1.3, 0);
+    }
+
+    // -------------------------------------------------------------
+    // INTERACTIVIDAD Y SELECCIÓN DE MIEMBRO
+    // -------------------------------------------------------------
+    function onMouseMove(event) {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      if (currentTab !== 'truss') {
+        document.getElementById('tooltip').style.display = 'none';
+        return;
+      }
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(clickableElements);
+
+      if (intersects.length > 0) {
+        const mesh = intersects[0].object;
+        if (hoveredMesh !== mesh) {
+          if (hoveredMesh && hoveredMesh !== selectedMesh()) {
+            hoveredMesh.material.emissive.setHex(0x000000);
+          }
+          hoveredMesh = mesh;
+          hoveredMesh.material.emissive.setHex(0x38bdf8);
+          hoveredMesh.material.emissiveIntensity = 0.5;
+        }
+
+        const elem = mesh.userData.element;
+        const tt = document.getElementById('tooltip');
+        tt.style.display = 'block';
+        tt.style.left = event.clientX + 'px';
+        tt.style.top = event.clientY + 'px';
+        document.getElementById('tt-title').innerText = `Elemento ${elem.id} (${elem.loc})`;
+        document.getElementById('tt-detail').innerText = `Pu = ${elem.pu > 0 ? '+' : ''}${elem.pu} kN | ${elem.sec}`;
+        document.body.style.cursor = 'pointer';
+      } else {
+        if (hoveredMesh && hoveredMesh !== selectedMesh()) {
+          hoveredMesh.material.emissive.setHex(0x000000);
+        }
+        hoveredMesh = null;
+        document.getElementById('tooltip').style.display = 'none';
+        document.body.style.cursor = 'default';
+      }
+    }
+
+    function onClick() {
+      if (currentTab !== 'truss') return;
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(clickableElements);
+      if (intersects.length > 0) {
+        const elem = intersects[0].object.userData.element;
+        selectElement(elem);
+      }
+    }
+
+    function selectedMesh() {
+      return clickableElements.find(m => m.userData.element.id === selectedElement.id);
+    }
+
+    function selectElement(elem) {
+      selectedElement = elem;
+      
+      document.getElementById('card-elem-title').querySelector('span:first-child').innerText = `Elemento ${elem.id}`;
+      const badge = document.getElementById('card-badge');
+      if (elem.type === 'C') {
+        badge.className = 'badge badge-compression';
+        badge.innerText = 'COMPRESIÓN';
+      } else if (elem.type === 'T') {
+        badge.className = 'badge badge-tension';
+        badge.innerText = 'TRACCIÓN';
+      } else {
+        badge.className = 'badge badge-neutral';
+        badge.innerText = 'FUERZA NULA';
+      }
+
+      document.getElementById('card-elem-id').innerText = `Barra ${elem.id}`;
+      document.getElementById('card-elem-loc').innerText = elem.loc;
+      document.getElementById('card-elem-nodes').innerText = `Nodo ${elem.ni} → Nodo ${elem.nj}`;
+      
+      const p1 = NODES[elem.ni];
+      const p2 = NODES[elem.nj];
+      const len = Math.hypot(p2.x - p1.x, p2.y - p1.y).toFixed(2);
+      document.getElementById('card-elem-len').innerText = `${len} m`;
+
+      const puEl = document.getElementById('card-elem-pu');
+      puEl.innerText = `${elem.pu > 0 ? '+' : ''}${elem.pu.toFixed(2)} kN`;
+      puEl.style.color = elem.type === 'C' ? '#ef4444' : (elem.type === 'T' ? '#38bdf8' : '#94a3b8');
+
+      document.getElementById('card-elem-sec').innerText = elem.sec;
+      document.getElementById('card-elem-cap').innerText = `${elem.cap} kN`;
+
+      const ratio = Math.abs(elem.pu / elem.cap * 100).toFixed(1);
+      const dcEl = document.getElementById('card-elem-dc');
+      dcEl.innerText = `${ratio}% (CUMPLE LRFD)`;
+    }
+
+    // -------------------------------------------------------------
+    // UI HANDLERS Y EVENTOS
+    // -------------------------------------------------------------
+    function setupUI() {
+      // Tab Switching
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const tab = btn.getAttribute('data-tab');
+          switchTab(tab);
+        });
+      });
+
+      // Color Mode
+      document.querySelectorAll('#color-mode-group .radio-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          document.querySelectorAll('#color-mode-group .radio-pill').forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          currentColorMode = pill.getAttribute('data-mode');
+          updateColorMode();
+        });
+      });
+
+      // Checkboxes Tab 1
+      document.getElementById('chk-building').addEventListener('change', (e) => buildingGroup.visible = e.target.checked);
+      document.getElementById('chk-purlins').addEventListener('change', (e) => purlinsGroup.visible = e.target.checked);
+      document.getElementById('chk-supports').addEventListener('change', (e) => supportsGroup.visible = e.target.checked);
+      document.getElementById('chk-nodes').addEventListener('change', (e) => gussetsGroup.visible = e.target.checked);
+
+      // Cargas Actuantes (kg/m²)
+      const chkDead = document.getElementById('chk-load-dead');
+      if (chkDead) {
+        chkDead.addEventListener('change', (e) => {
+          deadLoadGroup.visible = e.target.checked;
+          const leg = document.getElementById('leg-dead');
+          if (leg) leg.style.display = e.target.checked ? 'flex' : 'none';
+        });
+      }
+
+      const chkLive = document.getElementById('chk-load-live');
+      if (chkLive) {
+        chkLive.addEventListener('change', (e) => {
+          liveLoadGroup.visible = e.target.checked;
+          const leg = document.getElementById('leg-live');
+          if (leg) leg.style.display = e.target.checked ? 'flex' : 'none';
+        });
+      }
+
+      const chkWind = document.getElementById('chk-load-wind');
+      if (chkWind) {
+        chkWind.addEventListener('change', (e) => {
+          windLoadGroup.visible = e.target.checked;
+          windSimulationGroup.visible = e.target.checked && isWindFlowActive;
+          windVectorsDecompGroup.visible = e.target.checked && isWindDecompActive;
+          const leg = document.getElementById('leg-wind');
+          if (leg) leg.style.display = e.target.checked ? 'flex' : 'none';
+          updateWindBadge();
+        });
+      }
+
+      // Controles adicionales del Simulador de Viento
+      const chkWindFlow = document.getElementById('chk-wind-flow');
+      if (chkWindFlow) {
+        chkWindFlow.addEventListener('change', (e) => {
+          isWindFlowActive = e.target.checked;
+          const chkW = document.getElementById('chk-load-wind');
+          windSimulationGroup.visible = isWindFlowActive && (chkW ? chkW.checked : false);
+        });
+      }
+
+      const chkWindPulse = document.getElementById('chk-wind-pulse');
+      if (chkWindPulse) {
+        chkWindPulse.addEventListener('change', (e) => {
+          isWindPulseActive = e.target.checked;
+        });
+      }
+
+      const chkWindDecomp = document.getElementById('chk-wind-decomp');
+      if (chkWindDecomp) {
+        chkWindDecomp.addEventListener('change', (e) => {
+          isWindDecompActive = e.target.checked;
+          const chkW = document.getElementById('chk-load-wind');
+          windVectorsDecompGroup.visible = isWindDecompActive && (chkW ? chkW.checked : false);
+        });
+      }
+
+      const chkGravAnim = document.getElementById('chk-gravity-anim');
+      if (chkGravAnim) {
+        chkGravAnim.addEventListener('change', (e) => {
+          isGravityAnimActive = e.target.checked;
+        });
+      }
+
+      // Botones de velocidad de viento
+      const speedBtns = document.querySelectorAll('.wind-speed-btn');
+      speedBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          speedBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          windSpeedMode = btn.dataset.speed;
+          updateWindBadge();
+        });
+      });
+
+      // Botón disparar ráfaga pico
+      const btnGust = document.getElementById('btn-trigger-gust');
+      if (btnGust) {
+        btnGust.addEventListener('click', () => {
+          windGustBurstTime = 2.5;
+          const badge = document.getElementById('wind-badge');
+          if (badge) {
+            badge.innerText = "¡RÁFAGA PICO (105 km/h)!";
+            badge.style.background = "rgba(220, 38, 38, 0.2)";
+            badge.style.color = "#ef4444";
+            badge.style.borderColor = "#ef4444";
+            btnGust.classList.add('gust-pulsing');
+            setTimeout(() => {
+              btnGust.classList.remove('gust-pulsing');
+              updateWindBadge();
+            }, 2500);
+          }
+        });
+      }
+
+      const chkRoof = document.getElementById('chk-roof-plane');
+      if (chkRoof) {
+        chkRoof.addEventListener('change', (e) => {
+          roofPlaneGroup.visible = e.target.checked;
+        });
+      }
+
+      const chkNodal = document.getElementById('chk-nodal-loads');
+      if (chkNodal) {
+        chkNodal.addEventListener('change', (e) => {
+          nodalLoadsGroup.visible = e.target.checked;
+        });
+      }
+
+      // Botón Enfocar Unión de Nudo
+      document.getElementById('btn-focus-joint').addEventListener('click', () => {
+        const btnJoint = document.querySelector('[data-tab="joint"]');
+        if (btnJoint) btnJoint.click();
+      });
+
+      // Checkboxes Tab 2 (Joint)
+      document.getElementById('chk-joint-dims').addEventListener('change', (e) => {
+        jointDimsGroup.visible = e.target.checked;
+      });
+      document.getElementById('chk-joint-welds').addEventListener('change', (e) => {
+        jointWeldsGroup.visible = e.target.checked;
+      });
+      document.getElementById('chk-joint-explode').addEventListener('change', (e) => {
+        // Explode view: separate the angles and fillet welds from gusset plate
+        const offset = e.target.checked ? 0.38 : 0.0;
+        jointFrontAngles.forEach(mesh => mesh.position.z = offset);
+        jointBackAngles.forEach(mesh => mesh.position.z = -offset);
+        jointFrontWelds.forEach(grp => grp.position.z = offset);
+        jointBackWelds.forEach(grp => grp.position.z = -offset);
+      });
+
+      // Checkboxes Tab 3 (Sección Tracción)
+      document.getElementById('chk-sec-tension-dims').addEventListener('change', (e) => {
+        const d = sectionTensionGroup.getObjectByName("section-dimensions");
+        if (d) d.visible = e.target.checked;
+      });
+      document.getElementById('chk-sec-tension-gusset').addEventListener('change', (e) => {
+        const g = sectionTensionGroup.getObjectByName("gusset-mesh");
+        if (g) g.visible = e.target.checked;
+      });
+      document.getElementById('chk-sec-tension-weld').addEventListener('change', (e) => {
+        const w = sectionTensionGroup.getObjectByName("welds-group");
+        if (w) w.visible = e.target.checked;
+      });
+
+      // Checkboxes Tab 4 (Sección Compresión)
+      document.getElementById('chk-sec-comp-dims').addEventListener('change', (e) => {
+        const d = sectionCompGroup.getObjectByName("section-dimensions");
+        if (d) d.visible = e.target.checked;
+      });
+      document.getElementById('chk-sec-comp-gusset').addEventListener('change', (e) => {
+        const g = sectionCompGroup.getObjectByName("gusset-mesh");
+        if (g) g.visible = e.target.checked;
+      });
+      document.getElementById('chk-sec-comp-weld').addEventListener('change', (e) => {
+        const w = sectionCompGroup.getObjectByName("welds-group");
+        if (w) w.visible = e.target.checked;
+      });
+
+      // Auto rotate
+      document.getElementById('btn-autorotate').addEventListener('click', () => {
+        autoRotate = !autoRotate;
+        controls.autoRotate = autoRotate;
+        controls.autoRotateSpeed = 1.5;
+        document.getElementById('txt-autorotate').innerText = autoRotate ? "⏸ Pausar Giro" : "▶ Auto-Giro";
+        document.getElementById('btn-autorotate').style.borderColor = autoRotate ? '#38bdf8' : 'rgba(255,255,255,0.1)';
+      });
+
+      // Screenshot capture
+      document.getElementById('btn-screenshot').addEventListener('click', takeScreenshot);
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      
+      // Hide all panels
+      document.getElementById('panel-truss').style.display = 'none';
+      document.getElementById('panel-joint').style.display = 'none';
+      document.getElementById('panel-sec-tension').style.display = 'none';
+      document.getElementById('panel-sec-comp').style.display = 'none';
+
+      // Hide all 3D groups
+      mainTrussGroup.visible = false;
+      buildingGroup.visible = false;
+      purlinsGroup.visible = false;
+      loadsGroup.visible = false;
+      supportsGroup.visible = false;
+      gussetsGroup.visible = false;
+      jointDetailGroup.visible = false;
+      sectionTensionGroup.visible = false;
+      sectionCompGroup.visible = false;
+      windSimulationGroup.visible = false;
+      windVectorsDecompGroup.visible = false;
+
+      if (tab === 'truss') {
+        document.getElementById('panel-truss').style.display = 'flex';
+        document.getElementById('legend-box').style.display = 'flex';
+        mainTrussGroup.visible = true;
+        buildingGroup.visible = document.getElementById('chk-building').checked;
+        purlinsGroup.visible = document.getElementById('chk-purlins').checked;
+        supportsGroup.visible = document.getElementById('chk-supports').checked;
+        gussetsGroup.visible = document.getElementById('chk-nodes').checked;
+
+        // Cargas
+        loadsGroup.visible = true;
+        deadLoadGroup.visible = document.getElementById('chk-load-dead').checked;
+        liveLoadGroup.visible = document.getElementById('chk-load-live').checked;
+        const isWindChecked = document.getElementById('chk-load-wind').checked;
+        windLoadGroup.visible = isWindChecked;
+        windSimulationGroup.visible = isWindChecked && isWindFlowActive;
+        windVectorsDecompGroup.visible = isWindChecked && isWindDecompActive;
+        roofPlaneGroup.visible = document.getElementById('chk-roof-plane').checked;
+        nodalLoadsGroup.visible = document.getElementById('chk-nodal-loads').checked;
+        updateWindBadge();
+        
+        controls.target.set(4.5, 2.5, 3.25);
+        camera.position.set(17, 12, 22);
+      } else if (tab === 'joint') {
+        document.getElementById('panel-joint').style.display = 'flex';
+        document.getElementById('legend-box').style.display = 'none';
+        jointDetailGroup.visible = true;
+
+        controls.target.set(0, -0.1, 0);
+        camera.position.set(3.2, 2.2, 3.8);
+      } else if (tab === 'sec-tension') {
+        document.getElementById('panel-sec-tension').style.display = 'flex';
+        document.getElementById('legend-box').style.display = 'none';
+        sectionTensionGroup.visible = true;
+
+        controls.target.set(0, 0.9, 0);
+        camera.position.set(3.8, 3.2, 5.8);
+      } else if (tab === 'sec-comp') {
+        document.getElementById('panel-sec-comp').style.display = 'flex';
+        document.getElementById('legend-box').style.display = 'none';
+        sectionCompGroup.visible = true;
+
+        controls.target.set(0, 1.0, 0);
+        camera.position.set(4.2, 3.5, 6.4);
+      }
+      controls.update();
+    }
+
+    function updateColorMode() {
+      clickableElements.forEach(mesh => {
+        const elem = mesh.userData.element;
+        if (currentColorMode === 'forces') {
+          if (elem.type === 'C') mesh.material.color.copy(COLOR_COMPRESSION);
+          else if (elem.type === 'T') mesh.material.color.copy(COLOR_TENSION);
+          else mesh.material.color.copy(COLOR_NEUTRAL);
+          mesh.material.metalness = 0.65;
+        } else if (currentColorMode === 'realistic') {
+          mesh.material.color.setHex(0x334155);
+          mesh.material.metalness = 0.9;
+          mesh.material.roughness = 0.2;
+        } else if (currentColorMode === 'sections') {
+          if (elem.id === 1) mesh.material.color.setHex(0xdc2626); // Rojo para sección compresión
+          else mesh.material.color.setHex(0x0284c7); // Azul/Cyan para sección tracción
+          mesh.material.metalness = 0.75;
+        }
+      });
+    }
+
+    // Camera view shortcuts
+    function setCameraView(view) {
+      if (currentTab === 'truss') {
+        controls.target.set(4.5, 2.5, 3.25);
+        if (view === 'iso') camera.position.set(17, 12, 22);
+        else if (view === 'front') camera.position.set(4.5, 2.5, 24);
+        else if (view === 'top') camera.position.set(4.5, 26, 3.251);
+        else if (view === 'side') camera.position.set(25, 2.5, 3.25);
+      } else if (currentTab === 'joint') {
+        controls.target.set(0, -0.1, 0);
+        if (view === 'iso') camera.position.set(3.2, 2.2, 3.8);
+        else if (view === 'front') camera.position.set(0, -0.1, 4.4);
+        else if (view === 'top') camera.position.set(0, 5.0, 0.01);
+        else if (view === 'side') camera.position.set(4.4, -0.1, 0);
+      } else {
+        controls.target.set(0, 1.0, 0);
+        if (view === 'iso') camera.position.set(3.8, 3.2, 5.8);
+        else if (view === 'front') camera.position.set(0, 1.0, 6.5);
+        else if (view === 'top') camera.position.set(0, 8.0, 0.01);
+        else if (view === 'side') camera.position.set(6.5, 1.0, 0);
+      }
+      controls.update();
+    }
+
+    function resetCamera() {
+      setCameraView('iso');
+    }
+
+    function takeScreenshot() {
+      renderer.render(scene, camera);
+      const dataURL = renderer.domElement.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `Armadura_Grupo2_3D_${currentTab}.png`;
+      link.href = dataURL;
+      link.click();
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = simClock.getDelta();
+      controls.update();
+      updateWindSimulation(dt);
+      renderer.render(scene, camera);
+    }
+
+    // Auto-export helper
+    async function exportAllRenders() {
+      console.log("Starting auto-export of all 4 views in Clean White Studio mode...");
+      const tabs = [
+        { id: 'truss', file: 'Armadura_Grupo2_3D_truss.png' },
+        { id: 'joint', file: 'Union.png' },
+        { id: 'sec-tension', file: 'Seccion_Traccion_3D.png' },
+        { id: 'sec-comp', file: 'Seccion_Compresion_3D.png' }
+      ];
+      for (const item of tabs) {
+        switchTab(item.id);
+        await new Promise(r => setTimeout(r, 900));
+        renderer.render(scene, camera);
+        const dataUrl = renderer.domElement.toDataURL('image/png');
+        console.log("Exporting " + item.file + "...");
+        await fetch('/save_render', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: item.file, data: dataUrl })
+        });
+      }
+      console.log("Finished auto-exporting all views!");
+    }
+
+    window.onload = () => {
+      init();
+      if (window.location.search.includes('autoexport=1')) {
+        setTimeout(exportAllRenders, 1200);
+      }
+    };
+  </script>
+</body>
+</html>
